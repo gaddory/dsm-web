@@ -247,17 +247,28 @@ function TransitionHelp({ current, onClose }) {
     </Modal>
   )
 }
-function AiResult({ data, cut, onChoose, onOther, onClose }) {
+function AiResult({ images, sel, setSel, cut, onChoose, onOther, onClose }) {
   const [text, setText] = useState(cut.text || '')
+  const cur = images[sel] || images[0]
   return (
     <Modal title="AI 이미지 생성 결과" onClose={onClose}>
-      <img className="ai-img" src={data.image_b64} alt="ai" />
+      <img className="ai-img" src={cur.image_b64} alt="ai" />
       <div className="form"><label>자막 (수정 가능)<textarea rows={2} value={text} onChange={e => setText(e.target.value)} /></label></div>
       <div className="modal-btns">
-        <button className="btn success" onClick={() => onChoose(text)}>선택</button>
-        <button className="btn warn" onClick={onOther}>다른 이미지</button>
+        <button className="btn success" onClick={() => onChoose(text)}>이 이미지로 선택</button>
+        <button className="btn warn" onClick={onOther}>다른 이미지 생성</button>
         <button className="btn ghost" onClick={onClose}>닫기</button>
       </div>
+      {images.length > 1 && (
+        <div className="ai-hist-wrap">
+          <div className="ai-hist-label">지금까지 만든 이미지 {images.length}장 · 클릭하면 크게 보고 선택돼요</div>
+          <div className="ai-hist">
+            {images.map((im, i) =>
+              <img key={i} src={im.image_b64} className={'ai-thumb' + (i === sel ? ' on' : '')}
+                onClick={() => setSel(i)} alt={'후보 ' + (i + 1)} />)}
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }
@@ -330,10 +341,21 @@ export default function App() {
   const pickEnding = async (e) => { const f = e.target.files[0]; if (!f) return; try { const r = await api.upload(f); setS({ ending_image: r.id, ending_url: mediaUrl(r.id) }) } catch (err) { alert(err.message) } finally { e.target.value = '' } }
   const pickAudio = async (e) => { const f = e.target.files[0]; if (!f) return; setBusyMsg('음악 업로드 중…'); try { const r = await api.uploadAudio(f); setS({ bgm_file: r.id, bgm_name: f.name }) } catch (err) { alert(err.message) } finally { setBusyMsg(null); e.target.value = '' } }
 
-  // AI 결과
-  const onAiResult = (idx, data, cut) => setAiResult({ idx, data, cut })
-  const chooseAi = (text) => { const { idx, data } = aiResult; setCut(idx, { ...project.cuts[idx], image: data.id, image_url: mediaUrl(data.id), text }); setAiResult(null) }
-  const otherAi = async () => { const { idx, cut } = aiResult; setAiResult(null); setBusyMsg('AI 이미지 생성 중…'); try { const r = await api.genImage(cut.prompt); setAiResult({ idx, data: r, cut }) } catch (err) { alert(err.message) } finally { setBusyMsg(null) } }
+  // AI 결과 (생성 이미지 히스토리 누적 → 썸네일에서 골라 선택)
+  const onAiResult = (idx, data, cut) => setAiResult({ idx, cut, images: [data], sel: 0 })
+  const setAiSel = (i) => setAiResult(a => ({ ...a, sel: i }))
+  const chooseAi = (text) => {
+    const { idx, images, sel } = aiResult; const data = images[sel]
+    setCut(idx, { ...project.cuts[idx], image: data.id, image_url: mediaUrl(data.id), text })
+    setAiResult(null)
+  }
+  const otherAi = async () => {
+    setBusyMsg('AI 이미지 생성 중…')
+    try {
+      const r = await api.genImage(aiResult.cut.prompt)
+      setAiResult(a => ({ ...a, images: [...a.images, r], sel: a.images.length }))
+    } catch (err) { alert(err.message) } finally { setBusyMsg(null) }
+  }
 
   // 프로젝트
   const newProject = () => { if (!confirm('새 프로젝트를 시작할까요? (저장 안 한 변경은 사라져요)')) return; setProject(defaultProject()); setPid(null); setPname('제목 없음') }
@@ -490,7 +512,7 @@ export default function App() {
       {render && <div className="overlay"><div className="busy"><div className="spinner" /><div>{render.progress}</div></div></div>}
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
-      {aiResult && <AiResult data={aiResult.data} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
+      {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
     </div>
   )
 }

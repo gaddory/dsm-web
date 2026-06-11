@@ -89,14 +89,20 @@ input:disabled, textarea:disabled { opacity: .45; }
 
 /* 모달 */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 320px; max-width: 92vw; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 320px; max-width: 92vw; max-height: 90vh; overflow-y: auto; }
 .modal.wide { width: 640px; }
 .modal-title { font-weight: 700; color: var(--gold); margin-bottom: 12px; }
 .modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
 .form { display: flex; flex-direction: column; gap: 10px; }
 .form label { display: flex; align-items: center; gap: 8px; }
 .form textarea { flex: 1; width: 100%; }
-.ai-img { display: block; max-height: 52vh; border-radius: 8px; margin: 0 auto 10px; }
+.ai-img { display: block; max-height: 44vh; border-radius: 8px; margin: 0 auto 10px; }
+.ai-hist-wrap { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ai-hist-label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.ai-hist { display: flex; gap: 8px; flex-wrap: wrap; max-height: 160px; overflow-y: auto; }
+.ai-thumb { width: 60px; height: 107px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; }
+.ai-thumb:hover { border-color: var(--info); }
+.ai-thumb.on { border-color: var(--success); box-shadow: 0 0 0 2px rgba(34, 197, 94, .35); }
 
 .thelp { display: flex; gap: 12px; }
 .thelp-list { width: 180px; max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
