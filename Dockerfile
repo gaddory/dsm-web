@@ -21,5 +21,6 @@ COPY backend/ backend/
 COPY --from=fe /fe/dist frontend/dist
 
 WORKDIR /app/backend
-EXPOSE 8000
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# HF Spaces는 7860 포트. Render는 PORT 환경변수로 덮어씀 → 둘 다 호환.
+EXPOSE 7860
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-7860}"]

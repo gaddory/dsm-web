@@ -1,4 +1,16 @@
+---
+title: DSM DoryShortsMaker
+emoji: 🎬
+colorFrom: gray
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # DSM Web (DoryShortsMaker 웹 버전)
+
+> 무료·고RAM 렌더는 **Hugging Face Spaces(Docker, 16GB)** 권장. Render(512MB)는 편집·미리보기·AI는 OK지만 영상 렌더는 메모리 부족.
 
 데스크톱 DSM(`D:\lsdproject\ShortsMaker`)을 **건드리지 않고** 별도로 새로 만드는 웹앱.
 렌더링 엔진(`engine.py`)은 데스크톱판을 그대로 재활용한다.
