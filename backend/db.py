@@ -6,15 +6,36 @@ from sqlalchemy import (create_engine, Column, Integer, String, Text, LargeBinar
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+_SQLITE = "sqlite:///" + os.path.join(BASE, "data", "dsm.db")
+
+
+def _norm(url):
+    # 공백·따옴표·줄바꿈 제거 (HF/Render Secret에 섞인 보이지 않는 문자 방지)
+    url = (url or "").strip().strip('"').strip("'").strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
+DATABASE_URL = _norm(os.environ.get("DATABASE_URL", ""))
 if not DATABASE_URL:
     os.makedirs(os.path.join(BASE, "data"), exist_ok=True)
-    DATABASE_URL = "sqlite:///" + os.path.join(BASE, "data", "dsm.db")
+    DATABASE_URL = _SQLITE
 
-_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=_args, pool_pre_ping=True)
+
+def _make_engine(url):
+    args = {"check_same_thread": False} if url.startswith("sqlite") else {}
+    return create_engine(url, connect_args=args, pool_pre_ping=True)
+
+
+try:
+    engine = _make_engine(DATABASE_URL)
+except Exception as e:
+    print("⚠ DATABASE_URL 파싱 실패 → SQLite 폴백:", repr(DATABASE_URL[:25]), e)
+    os.makedirs(os.path.join(BASE, "data"), exist_ok=True)
+    DATABASE_URL = _SQLITE
+    engine = _make_engine(_SQLITE)
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base = declarative_base()
 
