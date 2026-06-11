@@ -4,9 +4,10 @@
   --info: #3b82f6; --success: #22c55e; --warn: #e0922f; --danger: #ef4444;
 }
 * { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg);
   font-family: "Noto Sans KR", "Malgun Gothic", sans-serif; font-size: 14px; }
-.app { max-width: 1280px; margin: 0 auto; padding: 0 12px 40px; }
+.app { max-width: 1280px; margin: 0 auto; padding: 0 12px 40px; overflow-x: hidden; }
 
 .head { display: flex; align-items: baseline; gap: 10px; padding: 12px 6px 8px; }
 .logo { font-size: 26px; font-weight: 900; }
@@ -113,6 +114,58 @@ input:disabled, textarea:disabled { opacity: .45; }
 .vid-meta { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 
 .foot { text-align: center; color: var(--muted); font-size: 12px; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* ───────── 📱 모바일 최적화 (≤700px) — PC는 위 규칙 그대로 ───────── */
+@media (max-width: 700px) {
+  body { font-size: 15px; }
+  .app { padding: 0 9px 36px; }
+
+  /* 헤더: 컴팩트 한 줄 */
+  .head { padding: 10px 2px 8px; gap: 8px; align-items: center; }
+  .tagline { display: none; }                 /* 태그라인 숨김(세로 깨짐 방지) */
+  .logo { font-size: 21px; }
+  .logo-sub { font-size: 12px; }
+  .head .muted { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .tabs .tab { flex: 1; text-align: center; padding: 11px; }
+
+  /* 프로젝트 바: 줄바꿈 + 전체폭 */
+  .projbar { flex-wrap: wrap; gap: 6px; }
+  .projbar .lbl { flex-basis: 100%; }
+  .projbar .grow { max-width: none; flex: 1 1 100%; }
+  .projbar select { flex: 1 1 100%; }
+
+  .box { padding: 11px 12px; }
+  .box legend { font-size: 14px; }
+
+  .row { gap: 6px; }
+  .lbl, .lbl.wide { min-width: 54px; font-size: 13px; }
+  .grow { flex: 1 1 130px; min-width: 0; }
+
+  /* 터치 친화 + iOS 자동확대 방지(16px) */
+  input, select, textarea { font-size: 16px; padding: 10px 11px; }
+  .btn { padding: 10px 13px; }
+  .btn.sm { padding: 9px 11px; font-size: 13px; }
+  .btn.xs { padding: 7px 10px; }
+
+  /* 컷 헤더: 화면 밖 넘침 방지 → 줄바꿈 */
+  .cut-head { flex-wrap: wrap; gap: 6px; }
+  .cut-head .spacer { display: none; }
+  .cut-head select { flex: 1 1 110px; }
+
+  /* 컷 목록: 페이지 자연 스크롤(중첩 스크롤 제거) */
+  .cuts-scroll { max-height: none; overflow: visible; padding-right: 0; }
+
+  /* API키 줄: 상태/링크 다음 줄로 */
+  .keyst, .link { flex-basis: 100%; }
+
+  .preview { padding: 12px; }
+
+  /* 로그인 카드: 화면 안에 맞게 */
+  .login { padding: 0 14px; }
+  .login-card { min-width: 0; width: 100%; max-width: 360px; padding: 28px 22px; }
+  .login-logo { font-size: 25px; }
+}
 
 /* 로그인 */
 .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
