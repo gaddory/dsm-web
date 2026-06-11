@@ -3,3 +3,9 @@ uvicorn[standard]
 pillow
 numpy
 python-multipart
+sqlalchemy
+psycopg2-binary
+google-auth
+requests
+pyjwt
+cryptography

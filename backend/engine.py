@@ -230,8 +230,8 @@ def build_bgm(path, total, mood="auto"):
             place(t0 + j * 0.55, l, r)
     mx = np.max(np.abs(buf)) or 1
     buf *= 0.72 / mx
-    fi = int(1.6 * SR); buf[:fi] *= np.linspace(0, 1, fi)[:, None]
-    fo = int(min(3.2, total / 2) * SR); buf[-fo:] *= np.linspace(1, 0, fo)[:, None]
+    fi = min(int(1.6 * SR), N); buf[:fi] *= np.linspace(0, 1, fi)[:, None]
+    fo = min(int(min(3.2, total / 2) * SR), N); buf[-fo:] *= np.linspace(1, 0, fo)[:, None]
     i16 = (np.clip(buf, -1, 1) * 32767).astype('<i2')
     with wave.open(path, 'w') as w:
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes(i16.tobytes())

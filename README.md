@@ -55,7 +55,28 @@ npm run dev          # http://localhost:5173 (API는 8011로 프록시 → 백�
    - ※ 도메인엔 `_`(언더스코어) 못 써서 `dory-dcm`처럼 하이픈으로.
 - ffmpeg·나눔폰트는 이미지에 포함. 폰트 교체는 `DSM_FONT_R/B` 환경변수.
 
+## 멀티유저 (v0.2)
+- **구글 로그인** + 유저별 **프로젝트/이미지/영상 저장**(DB) + 유저별 **OpenAI 키**(서버 암호화 보관)
+- 미디어는 DB에 저장, `/api/media/{id}?token=` 으로 본인만 접근.
+- `GOOGLE_CLIENT_ID` 미설정 시 **게스트 모드**(체험용 공용 계정)로 동작.
+
+### 환경변수
+| 변수 | 설명 |
+|---|---|
+| `GOOGLE_CLIENT_ID` | 구글 OAuth 클라이언트 ID(웹). 없으면 게스트 모드 |
+| `JWT_SECRET` | 세션 서명 키(랜덤 고정) |
+| `KEY_SECRET` | OpenAI 키 암호화 키(랜덤 고정 — 바뀌면 저장된 키 재입력 필요) |
+| `DATABASE_URL` | Postgres 권장(Neon/Supabase/Render). 없으면 SQLite(컨테이너 재시작 시 휘발) |
+
+### 구글 로그인 설정
+1. Google Cloud Console → API/사용자 인증 정보 → **OAuth 클라이언트 ID(웹)** 생성
+2. **승인된 자바스크립트 원본**에 배포 주소 추가 (예: `https://dory-dcm.onrender.com`)
+3. 발급된 클라이언트 ID를 Render의 `GOOGLE_CLIENT_ID` 에 설정 → 재배포
+
+### 영구 저장(중요)
+무료/기본은 컨테이너 디스크가 휘발 → **`DATABASE_URL`(Postgres)** 를 꼭 설정해야 유저 데이터가 유지됨.
+(이미지·영상도 DB에 저장되므로 용량 큰 서비스는 추후 S3/R2로 분리 권장.)
+
 ## TODO (다음 단계)
-- [ ] 프로젝트 저장/불러오기(DB) · 로그인 · 키 서버측 암호화 보관
-- [ ] 렌더 큐/동시성 제한 · 작업물 영구 저장(현재 서버 재시작 시 media/renders 휘발)
+- [ ] 렌더 큐/동시성 제한 · 대용량 미디어 S3/R2 분리
 - [ ] 폰트 패밀리 다중 지원(현재 크기·색상 + 단일 패밀리)

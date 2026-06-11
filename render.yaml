@@ -3,7 +3,15 @@ services:
     name: dory-dcm
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: free          # 무료 플랜(렌더 느릴 수 있음). 영상 많이 만들면 유료 인스턴스 권장.
+    plan: free                 # 무료(렌더 느림/디스크 휘발). 본격 사용 시 유료 인스턴스.
     autoDeploy: true
     healthCheckPath: /api/health
-    envVars: []
+    envVars:
+      - key: GOOGLE_CLIENT_ID  # 구글 OAuth 클라이언트 ID (미설정 시 게스트 모드)
+        sync: false
+      - key: JWT_SECRET        # 세션 서명 키 (자동 생성·고정)
+        generateValue: true
+      - key: KEY_SECRET        # OpenAI 키 암호화 키 (자동 생성·고정)
+        generateValue: true
+      - key: DATABASE_URL      # Postgres(Neon/Render 등). 미설정 시 SQLite(휘발)
+        sync: false
