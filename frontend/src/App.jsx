@@ -137,6 +137,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering }) {
 
   return (
     <div className="preview">
+      <div className="m-title">▶ 미리보기 · 영상 만들기</div>
       <div className="pv-frame">
         <canvas ref={canvasRef} width={FW} height={FH} className="pv-canvas" />
         {!scenes.length && <div className="pv-empty">재생을 누르면<br />여기서 재생돼요</div>}
@@ -470,6 +471,7 @@ export default function App() {
 
           <div className="work">
             <div className="cutlist">
+              <div className="m-title">✎ 컷 목록 · 장면 편집</div>
               <div className="cutbar"><button className="btn success sm" onClick={addCut}>＋ 컷 추가</button></div>
               <div className="cuts-scroll">
                 {project.cuts.map((c, i) =>

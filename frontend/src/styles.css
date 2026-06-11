@@ -28,6 +28,7 @@ body { margin: 0; background: var(--bg); color: var(--fg);
 
 .box { background: var(--box); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .box legend { color: var(--gold); font-weight: 700; padding: 0 6px; }
+.m-title { display: none; }   /* 모바일 전용 섹션 제목(데스크톱 숨김) */
 
 .row { display: flex; align-items: center; gap: 6px; margin: 7px 0; flex-wrap: wrap; }
 .lbl { color: var(--muted); min-width: 56px; }
@@ -68,6 +69,9 @@ input:disabled, textarea:disabled { opacity: .45; }
 .cutbar { display: flex; gap: 6px; margin-bottom: 8px; }
 .cuts-scroll { max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
 .cut { border: 1px solid var(--line); border-radius: 10px; padding: 9px; background: var(--panel); }
+/* 컷 홀짝 색 구분 + 왼쪽 액센트 — 컷 경계 또렷하게 */
+.cuts-scroll .cut:nth-child(odd) { background: #171b22; border-left: 3px solid #2f3947; }
+.cuts-scroll .cut:nth-child(even) { background: #232b37; border-left: 3px solid #4a5566; }
 .cut-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .cut-no { color: var(--gold); font-weight: 700; }
 .cut-head select { padding: 4px 6px; }
@@ -135,8 +139,14 @@ input:disabled, textarea:disabled { opacity: .45; }
   .projbar .grow { max-width: none; flex: 1 1 100%; }
   .projbar select { flex: 1 1 100%; }
 
-  .box { padding: 11px 12px; }
-  .box legend { font-size: 14px; }
+  /* 섹션 구분 또렷 + 여백 시원하게 */
+  .editor { gap: 18px; }
+  .settings, .work { gap: 16px; }
+  .m-title { display: block; font-size: 15px; font-weight: 800; color: var(--gold);
+    margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .box { padding: 16px 14px; }
+  .box legend { font-size: 15px; font-weight: 800; }
+  .box .row { margin: 12px 0; }
 
   .row { gap: 6px; }
   .lbl, .lbl.wide { min-width: 54px; font-size: 13px; }
@@ -148,13 +158,17 @@ input:disabled, textarea:disabled { opacity: .45; }
   .btn.sm { padding: 9px 11px; font-size: 13px; }
   .btn.xs { padding: 7px 10px; }
 
-  /* 컷 헤더: 화면 밖 넘침 방지 → 줄바꿈 */
-  .cut-head { flex-wrap: wrap; gap: 6px; }
+  /* 컷: 간격 시원 + 헤더 줄바꿈(넘침 방지) */
+  .cuts-scroll { max-height: none; overflow: visible; padding-right: 0; gap: 16px; }
+  .cut { padding: 14px 13px; }
+  .cut .row { margin: 12px 0; }
+  .cut-text { margin: 4px 0 12px; padding: 12px 11px; }
+  .cut-head { flex-wrap: wrap; gap: 6px; row-gap: 9px; margin-bottom: 12px; }
   .cut-head .spacer { display: none; }
   .cut-head select { flex: 1 1 110px; }
-
-  /* 컷 목록: 페이지 자연 스크롤(중첩 스크롤 제거) */
-  .cuts-scroll { max-height: none; overflow: visible; padding-right: 0; }
+  .cut-no { font-size: 15px; }
+  .cutbar { margin-bottom: 12px; }
+  .projbar { padding: 12px 13px; }
 
   /* API키 줄: 상태/링크 다음 줄로 */
   .keyst, .link { flex-basis: 100%; }
