@@ -96,7 +96,11 @@ input:disabled, textarea:disabled { opacity: .45; }
 .form { display: flex; flex-direction: column; gap: 10px; }
 .form label { display: flex; align-items: center; gap: 8px; }
 .form textarea { flex: 1; width: 100%; }
+.ai-img-wrap { position: relative; }
 .ai-img { display: block; max-height: 44vh; border-radius: 8px; margin: 0 auto 10px; }
+.ai-loading { position: absolute; inset: 0 0 10px 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; background: rgba(0, 0, 0, .62);
+  border-radius: 8px; color: var(--fg); font-weight: 700; }
 .ai-hist-wrap { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
 .ai-hist-label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
 .ai-hist { display: flex; gap: 8px; flex-wrap: wrap; max-height: 160px; overflow-y: auto; }

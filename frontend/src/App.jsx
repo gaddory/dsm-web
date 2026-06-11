@@ -247,17 +247,20 @@ function TransitionHelp({ current, onClose }) {
     </Modal>
   )
 }
-function AiResult({ images, sel, setSel, cut, onChoose, onOther, onClose }) {
+function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClose }) {
   const [text, setText] = useState(cut.text || '')
   const cur = images[sel] || images[0]
   return (
     <Modal title="AI 이미지 생성 결과" onClose={onClose}>
-      <img className="ai-img" src={cur.image_b64} alt="ai" />
+      <div className="ai-img-wrap">
+        <img className="ai-img" src={cur.image_b64} alt="ai" />
+        {loading && <div className="ai-loading"><div className="spinner" /><div>새 이미지 생성 중…</div></div>}
+      </div>
       <div className="form"><label>자막 (수정 가능)<textarea rows={2} value={text} onChange={e => setText(e.target.value)} /></label></div>
       <div className="modal-btns">
-        <button className="btn success" onClick={() => onChoose(text)}>이 이미지로 선택</button>
-        <button className="btn warn" onClick={onOther}>다른 이미지 생성</button>
-        <button className="btn ghost" onClick={onClose}>닫기</button>
+        <button className="btn success" disabled={loading} onClick={() => onChoose(text)}>이 이미지로 선택</button>
+        <button className="btn warn" disabled={loading} onClick={onOther}>{loading ? '생성 중…' : '다른 이미지 생성'}</button>
+        <button className="btn ghost" disabled={loading} onClick={onClose}>닫기</button>
       </div>
       {images.length > 1 && (
         <div className="ai-hist-wrap">
@@ -350,11 +353,11 @@ export default function App() {
     setAiResult(null)
   }
   const otherAi = async () => {
-    setBusyMsg('AI 이미지 생성 중…')
+    setAiResult(a => ({ ...a, loading: true }))
     try {
       const r = await api.genImage(aiResult.cut.prompt)
-      setAiResult(a => ({ ...a, images: [...a.images, r], sel: a.images.length }))
-    } catch (err) { alert(err.message) } finally { setBusyMsg(null) }
+      setAiResult(a => ({ ...a, images: [...a.images, r], sel: a.images.length, loading: false }))
+    } catch (err) { alert(err.message); setAiResult(a => a && { ...a, loading: false }) }
   }
 
   // 프로젝트
@@ -512,7 +515,7 @@ export default function App() {
       {render && <div className="overlay"><div className="busy"><div className="spinner" /><div>{render.progress}</div></div></div>}
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
-      {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
+      {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
     </div>
   )
 }
