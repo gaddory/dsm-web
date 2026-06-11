@@ -153,7 +153,7 @@ def ken_burns(png, dur, out_mp4):
     vf = (f"zoompan=z='min(zoom+0.0004,1.07)':d={fr}:"
           f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={OUTW}x{OUTH}:fps=30,format=yuv420p")
     _run([FFMPEG, "-y", "-loop", "1", "-i", png, "-r", "30", "-vf", vf,
-          "-frames:v", str(fr), "-c:v", "libx264", "-pix_fmt", "yuv420p", out_mp4])
+          "-frames:v", str(fr), "-c:v", "libx264", "-preset", "veryfast", "-threads", "1", "-pix_fmt", "yuv420p", out_mp4])
 
 
 def xfade_concat(clips, durs, out, transition="fade", tr=0.45):
@@ -163,14 +163,14 @@ def xfade_concat(clips, durs, out, transition="fade", tr=0.45):
         inputs += ["-i", c]
     if n == 1:
         _run([FFMPEG, "-y", "-i", clips[0], "-vf",
-              f"fade=t=out:st={max(0,durs[0]-0.5):.3f}:d=0.5", "-c:v", "libx264", "-pix_fmt", "yuv420p", out])
+              f"fade=t=out:st={max(0,durs[0]-0.5):.3f}:d=0.5", "-c:v", "libx264", "-preset", "veryfast", "-threads", "1", "-pix_fmt", "yuv420p", out])
         return durs[0]
     if transition == "none":   # 하드컷
         total = sum(durs)
         labels = "".join(f"[{i}:v]" for i in range(n))
         filt = f"{labels}concat=n={n}:v=1[c];[c]fade=t=out:st={total-0.5:.3f}:d=0.5[vout]"
         _run([FFMPEG, "-y"] + inputs + ["-filter_complex", filt, "-map", "[vout]",
-              "-c:v", "libx264", "-pix_fmt", "yuv420p", out])
+              "-c:v", "libx264", "-preset", "veryfast", "-threads", "1", "-pix_fmt", "yuv420p", out])
         return total
     tr = max(0.1, min(tr, min(durs) - 0.1))   # 전환이 컷 길이보다 길면 깨짐 → 클램프
     parts, lab, cum = [], "0:v", durs[0]
@@ -179,7 +179,7 @@ def xfade_concat(clips, durs, out, transition="fade", tr=0.45):
         lab = f"x{i}"; cum = cum + durs[i] - tr
     parts.append(f"[{lab}]fade=t=out:st={cum-0.5:.3f}:d=0.5[vout]")
     _run([FFMPEG, "-y"] + inputs + ["-filter_complex", ";".join(parts),
-          "-map", "[vout]", "-c:v", "libx264", "-pix_fmt", "yuv420p", out])
+          "-map", "[vout]", "-c:v", "libx264", "-preset", "veryfast", "-threads", "1", "-pix_fmt", "yuv420p", out])
     return cum
 
 
@@ -202,7 +202,7 @@ _MOODS = {
 
 
 def build_bgm(path, total, mood="auto"):
-    SR = 44100; N = int(total * SR); buf = np.zeros((N, 2))
+    SR = 44100; N = int(total * SR); buf = np.zeros((N, 2), dtype=np.float32)
     F = {'G2': 98, 'A2': 110, 'C3': 130.81, 'F2': 87.31, 'F3': 174.61, 'G3': 196,
          'A3': 220, 'B3': 246.94, 'C4': 261.63, 'D4': 293.66, 'E4': 329.63,
          'F4': 349.23, 'G4': 392, 'C5': 523.25, 'A4': 440}
