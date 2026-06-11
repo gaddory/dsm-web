@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: dory-dcm
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free          # 무료 플랜(렌더 느릴 수 있음). 영상 많이 만들면 유료 인스턴스 권장.
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars: []
