@@ -364,30 +364,19 @@ export default function App() {
   const [sel, setSel] = useState(0)
   const [propTab, setPropTab] = useState('scene')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [exitConfirm, setExitConfirm] = useState(false)
   const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
-  const exitRef = useRef({}); exitRef.current = { fontDlg: !!fontDlg, transHelp, aiResult: !!aiResult, settingsOpen }
-  const leavingRef = useRef(false)
-  const tabRef = useRef('edit')
-  useEffect(() => {
+  // 열릴 때 히스토리 한 칸 push → 뒤로가기로 닫힘 (삼성 등 모바일에서도 신뢰성↑)
+  useBackClose(settingsOpen, () => setSettingsOpen(false))
+  useBackClose(!!aiResult, () => setAiResult(null))
+  useBackClose(!!fontDlg, () => setFontDlg(null))
+  useBackClose(transHelp, () => setTransHelp(false))
+  useBackClose(tab === 'vids', () => setTab('edit'))      // 내영상 → 뒤로가기 → 메인(편집)
+  useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
-    window.history.pushState({ g: 1 }, '')
-    const onPop = () => {
-      if (leavingRef.current) return
-      window.history.pushState({ g: 1 }, '')            // 뒤로가기 트랩 재장전
-      const m = exitRef.current
-      if (m.fontDlg) setFontDlg(null)
-      else if (m.transHelp) setTransHelp(false)
-      else if (m.aiResult) setAiResult(null)
-      else if (m.settingsOpen) setSettingsOpen(false)
-      else if (tabRef.current === 'vids') { tabRef.current = 'edit'; setTab('edit') }   // 내영상 → 메인(편집)
-      else setExitConfirm(true)                           // 메인 → 종료 확인
-    }
-    const onBefore = (e) => { if (leavingRef.current) return; e.preventDefault(); e.returnValue = '' }
-    window.addEventListener('popstate', onPop)
+    const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('beforeunload', onBefore)
-    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('beforeunload', onBefore) }
+    return () => window.removeEventListener('beforeunload', onBefore)
   }, [!!user])
 
   const s = project.settings
@@ -488,19 +477,13 @@ export default function App() {
         await new Promise(r => setTimeout(r, 1200))
         const st = await api.renderStatus(job_id)
         setRender({ progress: st.progress })
-        if (st.status === 'done') { setRender(null); await loadVideos(); tabRef.current = 'vids'; setTab('vids'); window.open(mediaUrl(st.media), '_blank'); break }
+        if (st.status === 'done') { setRender(null); await loadVideos(); setTab('vids'); window.open(mediaUrl(st.media), '_blank'); break }
         if (st.status === 'error') { setRender(null); alert('렌더 오류: ' + st.error); break }
       }
     } catch (err) { setRender(null); alert(err.message) }
   }
 
   const logout = () => { setToken(''); setUser(null); setPid(null) }
-  const leave = () => {
-    setExitConfirm(false); leavingRef.current = true
-    window.history.go(-2)
-    // 못 빠져나갔으면(이전 사이트 없음) 가드 복구 — 트랩이 영구히 깨지지 않게
-    setTimeout(() => { leavingRef.current = false; window.history.pushState({ g: 1 }, '') }, 700)
-  }
 
   if (booting) return <div className="login"><div className="login-card"><div className="spinner" /></div></div>
   if (!user) return <Login onUser={(u) => { setUser(u); loadProjects() }} />
@@ -593,7 +576,7 @@ export default function App() {
         <button className="btn ghost sm" onClick={saveProject}>저장</button>
         <button className="btn ghost sm" onClick={newProject}>새로</button>
         <span className="spacer" />
-        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') { tabRef.current = 'edit'; setTab('edit') } else { tabRef.current = 'vids'; setTab('vids'); loadVideos() } }}>내 영상</button>
+        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') setTab('edit'); else { setTab('vids'); loadVideos() } }}>내 영상</button>
         <span className="muted acct">{user.name || user.email}</span>
         <button className="btn ghost sm" onClick={logout}>로그아웃</button>
         {tab !== 'vids' && <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
@@ -659,13 +642,6 @@ export default function App() {
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
-      {exitConfirm && <Modal title="작업을 종료하시겠습니까?" onClose={() => setExitConfirm(false)}>
-        <p className="muted" style={{ margin: '2px 0 8px' }}>지금까지 작업은 저장됩니다.</p>
-        <div className="modal-btns">
-          <button className="btn primary" onClick={() => setExitConfirm(false)}>아니오</button>
-          <button className="btn danger-o" onClick={leave}>네</button>
-        </div>
-      </Modal>}
     </div>
   )
 }
