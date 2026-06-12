@@ -327,7 +327,8 @@ _ADMIN_HTML = """<!doctype html><html lang="ko"><head><meta charset="utf-8">
 input{background:#0e1117;border:1px solid #2a3142;color:#fff;border-radius:8px;padding:10px;font-size:14px}
 button{background:#5b7cfa;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
 button.ghost{background:#222838}table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}.muted{color:#8b93a7;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}th{cursor:pointer;user-select:none}
+th:hover{color:#cfd6e6}.muted{color:#8b93a7;font-size:13px}.link{color:#7d97ff;font-size:13px;cursor:pointer;text-decoration:underline}.th-s{color:#7d97ff}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.err{color:#ff6b6b;font-size:13px;min-height:18px;margin:6px 0}
 .sw{position:relative;width:46px;height:26px;display:inline-block}.sw input{display:none}
 .sl{position:absolute;inset:0;background:#3a4256;border-radius:99px;cursor:pointer;transition:.2s}
@@ -354,9 +355,16 @@ th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}.muted{color:
 <button class="ghost" onclick="wmAll(true)">전체 ON</button>
 <button class="ghost" onclick="wmAll(false)">전체 OFF</button>
 <button class="ghost" onclick="logout()">로그아웃</button></span></div></div>
-<div class="card"><b>사용자 <span id="cnt" class="muted"></span></b>
-<table><thead><tr><th>이름 / 이메일</th><th>영상</th><th>가입</th><th>워터마크</th></tr></thead>
-<tbody id="rows"></tbody></table></div></div>
+<div class="card">
+<div class="row" style="margin-bottom:12px"><b>사용자 <span id="cnt" class="muted"></span></b>
+<input id="q" placeholder="이름 · 아이디 검색" oninput="render()" style="width:200px;margin-left:8px">
+<span class="link" onclick="clearFilter()" style="margin-left:auto">필터 해제</span></div>
+<table><thead><tr>
+<th onclick="sortBy('name')">이름 / 이메일<span id="s-name" class="th-s"></span></th>
+<th onclick="sortBy('videos')">영상<span id="s-videos" class="th-s"></span></th>
+<th onclick="sortBy('created')">가입<span id="s-created" class="th-s"></span></th>
+<th onclick="sortBy('watermark')">워터마크<span id="s-watermark" class="th-s"></span></th>
+</tr></thead><tbody id="rows"></tbody></table></div></div>
 <script>
 const T=()=>localStorage.getItem('dsm_adm')||'';
 const H=()=>({'Authorization':'Bearer '+T(),'Content-Type':'application/json'});
@@ -366,12 +374,21 @@ async function login(){
  localStorage.setItem('dsm_adm',d.token);show();}
 function logout(){localStorage.removeItem('dsm_adm');location.reload();}
 async function chpw(){const r=await fetch('/api/admin/password',{method:'POST',headers:H(),body:JSON.stringify({password:np.value})});const d=await r.json();alert(r.ok?'비밀번호가 변경됐어요':(d.detail||'실패'));if(r.ok)np.value='';}
-async function wm(id,on){await fetch('/api/admin/user-watermark',{method:'POST',headers:H(),body:JSON.stringify({user_id:id,on:on})});}
+let ALL=[],sortKey='created',sortAsc=false;
+async function wm(id,on){await fetch('/api/admin/user-watermark',{method:'POST',headers:H(),body:JSON.stringify({user_id:id,on:on})});var u=ALL.find(function(x){return x.id===id});if(u)u.watermark=on;}
 async function wmAll(on){if(!confirm('모든 사용자 워터마크를 '+(on?'ON':'OFF')+' 할까요?'))return;await fetch('/api/admin/watermark-all',{method:'POST',headers:H(),body:JSON.stringify({on:on})});load();}
 async function load(){
  const r=await fetch('/api/admin/users',{headers:H()});if(r.status===403||r.status===401){logout();return}
- const us=await r.json();cnt.textContent='('+us.length+'명)';
- rows.innerHTML=us.map(x=>'<tr><td><div>'+(x.name||'')+'</div><div class="muted">'+(x.email||'')+'</div></td><td>'+x.videos+'</td><td class="muted">'+x.created+'</td><td><label class="sw"><input type="checkbox" '+(x.watermark?'checked':'')+' onchange="wm('+x.id+',this.checked)"><span class="sl"></span></label></td></tr>').join('');}
+ ALL=await r.json();render();}
+function sortBy(k){if(sortKey===k){sortAsc=!sortAsc}else{sortKey=k;sortAsc=true}render();}
+function clearFilter(){q.value='';sortKey='created';sortAsc=false;render();}
+function render(){
+ const t=(q.value||'').trim().toLowerCase();
+ let L=ALL.filter(function(x){return !t||(x.name||'').toLowerCase().includes(t)||(x.email||'').toLowerCase().includes(t);});
+ L.sort(function(a,b){var av=a[sortKey],bv=b[sortKey];if(sortKey==='name'){av=(a.name||'').toLowerCase();bv=(b.name||'').toLowerCase();}if(av<bv)return sortAsc?-1:1;if(av>bv)return sortAsc?1:-1;return 0;});
+ cnt.textContent='('+L.length+'명)';
+ rows.innerHTML=L.map(function(x){return '<tr><td><div>'+(x.name||'')+'</div><div class="muted">'+(x.email||'')+'</div></td><td>'+x.videos+'</td><td class="muted">'+x.created+'</td><td><label class="sw"><input type="checkbox" '+(x.watermark?'checked':'')+' onchange="wm('+x.id+',this.checked)"><span class="sl"></span></label></td></tr>';}).join('');
+ ['name','videos','created','watermark'].forEach(function(k){document.getElementById('s-'+k).textContent=(sortKey===k)?(sortAsc?' ▲':' ▼'):'';});}
 function show(){document.getElementById('loginView').style.display='none';panel.style.display='';load();}
 if(T())show();
 </script></body></html>"""
