@@ -289,6 +289,20 @@ function useIsMobile() {
   return m
 }
 
+// 모달이 열리면 히스토리에 한 칸 쌓고, 뒤로가기 → 앱을 벗어나지 않고 모달만 닫음
+function useBackClose(open, close) {
+  useEffect(() => {
+    if (!open) return
+    window.history.pushState({ dsmModal: true }, '')
+    const onPop = () => close()
+    window.addEventListener('popstate', onPop)
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      if (window.history.state && window.history.state.dsmModal) window.history.back()
+    }
+  }, [open])
+}
+
 function Collapse({ title, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
@@ -352,6 +366,10 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
+  useBackClose(settingsOpen, () => setSettingsOpen(false))
+  useBackClose(!!aiResult, () => setAiResult(null))
+  useBackClose(!!fontDlg, () => setFontDlg(null))
+  useBackClose(transHelp, () => setTransHelp(false))
 
   const s = project.settings
   const setS = (patch) => setProject(p => ({ ...p, settings: { ...p.settings, ...patch } }))
