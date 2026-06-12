@@ -187,8 +187,13 @@ select { cursor: pointer; }
   border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; transition: .12s; }
 .music-row:hover { border-color: #3a4456; }
 .music-row.on { border-color: var(--primary); background: var(--primary-soft); }
-.music-name { flex: 1; font-weight: 600; }
+.music-name { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .music-check { color: var(--success); font-weight: 800; }
+.music-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.music-sec { color: var(--gold); font-weight: 700; font-size: 13px; }
+.music-sec .muted { font-weight: 500; font-size: 12px; }
+.music-empty { padding: 14px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 10px; }
+.btn.xs { padding: 4px 9px; font-size: 12px; border-radius: 7px; }
 
 /* transition help */
 .thelp { display: flex; gap: 14px; }

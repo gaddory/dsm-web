@@ -141,15 +141,23 @@ def gen_image(b: GenIn, uid: int = Depends(auth.current_uid), s: Session = Depen
 
 
 # ───────── 미디어 ─────────
+_AUDIO_MIME = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+               ".aac": "audio/aac", ".ogg": "audio/ogg"}
+
+
 def _store_upload(file, uid, kind, allow, s):
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in allow:
         raise HTTPException(400, "허용되지 않는 파일 형식입니다.")
     blob = file.file.read()
     mid = uuid.uuid4().hex + ext
-    mime = "audio/mpeg" if kind == "audio" else ("image/" + (ext[1:] or "png").replace("jpg", "jpeg"))
-    s.add(Media(id=mid, user_id=uid, kind=kind, mime=mime, blob=blob)); s.commit()
-    return {"id": mid}
+    if kind == "audio":
+        mime = _AUDIO_MIME.get(ext, "audio/mpeg")
+    else:
+        mime = "image/" + (ext[1:] or "png").replace("jpg", "jpeg")
+    nm = (file.filename or "")[:256]
+    s.add(Media(id=mid, user_id=uid, kind=kind, mime=mime, name=nm, blob=blob)); s.commit()
+    return {"id": mid, "name": nm}
 
 
 @app.post("/api/upload-image")
@@ -232,6 +240,13 @@ def render_status(job_id: str, uid: int = Depends(auth.current_uid)):
 def list_videos(uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
     rows = s.query(Media).filter_by(user_id=uid, kind="video").order_by(Media.created.desc()).all()
     return [{"id": m.id, "created": str(m.created)[:16]} for m in rows]
+
+
+@app.get("/api/audios")
+def list_audios(uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
+    """유저가 올린 음악(불러온 순)."""
+    rows = s.query(Media).filter_by(user_id=uid, kind="audio").order_by(Media.created.asc()).all()
+    return [{"id": m.id, "name": m.name or m.id, "created": str(m.created)[:16]} for m in rows]
 
 
 @app.delete("/api/media/{mid}")

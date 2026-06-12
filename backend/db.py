@@ -65,12 +65,24 @@ class Media(Base):
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
     kind = Column(String(16))                            # image / audio / video
     mime = Column(String(64))
+    name = Column(String(256))                           # 원본 파일명(오디오 등 표시용)
     blob = Column(LargeBinary)
     created = Column(DateTime, server_default=func.now())
 
 
 def init_db():
     Base.metadata.create_all(engine)
+    # 기존 media 테이블에 name 컬럼이 없으면 추가(베스트에포트)
+    try:
+        with engine.begin() as conn:
+            if DATABASE_URL.startswith("sqlite"):
+                cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(media)").fetchall()]
+                if "name" not in cols:
+                    conn.exec_driver_sql("ALTER TABLE media ADD COLUMN name VARCHAR(256)")
+            else:
+                conn.exec_driver_sql("ALTER TABLE media ADD COLUMN IF NOT EXISTS name VARCHAR(256)")
+    except Exception as e:
+        print("⚠ media.name 마이그레이션 스킵:", e)
 
 
 def get_db():

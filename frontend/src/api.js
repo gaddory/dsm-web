@@ -42,4 +42,7 @@ export const api = {
   // 영상
   videos: () => req('GET', '/api/videos'),
   delVideo: (id) => req('DELETE', '/api/media/' + id),
+  // 음악(유저 업로드)
+  audios: () => req('GET', '/api/audios'),
+  delAudio: (id) => req('DELETE', '/api/media/' + id),
 }

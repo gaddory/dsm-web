@@ -288,30 +288,65 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
-function MusicPicker({ current, bgmName, onPick, onPickFile, onClose }) {
-  const [sel, setSel] = useState(current)
+function MusicPicker({ current, onPick, onClose, busy }) {
+  const [audios, setAudios] = useState([])
+  const [sel, setSel] = useState(current)        // mood | 'none' | 업로드 음악 id
   const [playing, setPlaying] = useState(null)
   const audioRef = useRef(null)
-  const stop = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } setPlaying(null) }
-  const play = (mood, e) => {
-    e.stopPropagation()
-    if (playing === mood) { stop(); return }
-    stop()
-    const a = new Audio(`/api/bgm-preview?mood=${mood}`); a.loop = true
-    audioRef.current = a; a.play().catch(() => { }); setPlaying(mood)
-  }
+  const fileRef = useRef(null)
+  const load = () => api.audios().then(setAudios).catch(() => { })
+  useEffect(() => { load() }, [])
   useEffect(() => () => { if (audioRef.current) audioRef.current.pause() }, [])
+  const stop = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } setPlaying(null) }
+  const play = (key, url, e) => {
+    e.stopPropagation()
+    if (playing === key) { stop(); return }
+    stop()
+    const a = new Audio(url); a.loop = true; audioRef.current = a; a.play().catch(() => { }); setPlaying(key)
+  }
+  const upload = async (e) => {
+    const f = e.target.files[0]; e.target.value = ''
+    if (!f) return
+    busy('음악 업로드 중…')
+    try { const r = await api.uploadAudio(f); await load(); setSel(r.id) }
+    catch (err) { alert(err.message) } finally { busy(null) }
+  }
+  const del = async (id, e) => {
+    e.stopPropagation()
+    if (!confirm('이 음악을 목록에서 삭제할까요?')) return
+    if (playing === id) stop()
+    try { await api.delAudio(id); await load(); if (sel === id) setSel('none') } catch (err) { alert(err.message) }
+  }
   const close = () => { stop(); onClose() }
-  const done = () => { stop(); sel === 'file' ? onPickFile() : onPick(sel) }
+  const done = () => {
+    stop()
+    const a = audios.find(x => x.id === sel)
+    onPick(a ? { bgm_mode: 'file', bgm_file: a.id, bgm_name: a.name } : { bgm_mode: sel, bgm_file: '', bgm_name: '' })
+  }
   return (
     <Modal title="배경음악 선택" onClose={close} wide>
-      <p className="muted" style={{ margin: '0 0 10px' }}>곡을 고르고 ▶로 들어본 뒤 완료를 눌러요 (무료 합성음악)</p>
+      <input ref={fileRef} type="file" accept="audio/*" hidden onChange={upload} />
+      <div className="music-head">
+        <span className="music-sec">내 음악 <span className="muted">· 계정에 저장 (원본 지워도 사용 가능)</span></span>
+        <button className="btn info xs" onClick={() => fileRef.current.click()}>＋ 불러오기</button>
+      </div>
       <div className="music-list">
-        {BGM_OPTS.map(([label, val]) => (
+        {audios.length === 0 && <div className="music-empty">불러온 음악이 없어요. ＋불러오기로 추가하세요.</div>}
+        {audios.map(a => (
+          <div key={a.id} className={'music-row' + (sel === a.id ? ' on' : '')} onClick={() => setSel(a.id)}>
+            <span className="music-name">{a.name}</span>
+            <button className="btn ghost xs" onClick={(e) => play(a.id, mediaUrl(a.id), e)}>{playing === a.id ? '■ 정지' : '▶ 듣기'}</button>
+            <button className="btn danger-o xs" onClick={(e) => del(a.id, e)}>삭제</button>
+            {sel === a.id && <span className="music-check">✓</span>}
+          </div>
+        ))}
+      </div>
+      <div className="music-head" style={{ marginTop: '14px' }}><span className="music-sec">무료 음악 <span className="muted">· 합성, 삭제 불가</span></span></div>
+      <div className="music-list">
+        {BGM_OPTS.filter(([, v]) => v !== 'file').map(([label, val]) => (
           <div key={val} className={'music-row' + (sel === val ? ' on' : '')} onClick={() => setSel(val)}>
-            <span className="music-name">{label}{val === 'file' && bgmName ? ` · ${bgmName}` : ''}</span>
-            {val !== 'none' && val !== 'file' &&
-              <button className="btn ghost xs" onClick={(e) => play(val, e)}>{playing === val ? '■ 정지' : '▶ 듣기'}</button>}
+            <span className="music-name">{label}</span>
+            {val !== 'none' && <button className="btn ghost xs" onClick={(e) => play(val, `/api/bgm-preview?mood=${val}`, e)}>{playing === val ? '■ 정지' : '▶ 듣기'}</button>}
             {sel === val && <span className="music-check">✓</span>}
           </div>
         ))}
@@ -605,8 +640,7 @@ export default function App() {
     </div>
     <div className="row"><span className="lbl">전환 길이</span><input type="number" step="0.05" min="0" value={s.trans_dur} onChange={e => setS({ trans_dur: +e.target.value })} /><span className="muted">초</span></div>
     <div className="row"><span className="lbl">배경음악</span>
-      <button className="btn ghost sm" onClick={() => setMusicOpen(true)}>♪ {BGM_NAME2LABEL[s.bgm_mode] || '선택'}{s.bgm_mode === 'file' && s.bgm_name ? ` · ${s.bgm_name}` : ''}</button>
-      <input ref={audioRef} type="file" accept="audio/*" hidden onChange={pickAudio} />
+      <button className="btn ghost sm" onClick={() => setMusicOpen(true)}>♪ {s.bgm_mode === 'file' ? (s.bgm_name || '내 음악') : (BGM_NAME2LABEL[s.bgm_mode] || '선택')}</button>
     </div>
   </>)
   const cutListBlock = (
@@ -667,7 +701,7 @@ export default function App() {
                     <video src={mediaUrl(v.id)} controls width="180" />
                     <div className="vid-meta"><div>{v.created}</div>
                       <a className="btn ghost sm" href={mediaUrl(v.id)} download>다운로드</a>
-                      <button className="btn danger-o sm" onClick={async () => { await api.delVideo(v.id); loadVideos() }}>삭제</button>
+                      <button className="btn danger-o sm" onClick={async () => { if (!confirm('이 영상을 삭제할까요?')) return; await api.delVideo(v.id); loadVideos() }}>삭제</button>
                     </div>
                   </div>)}
               </div>
@@ -725,9 +759,9 @@ export default function App() {
       {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
         <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
       </div>}
-      {musicOpen && <MusicPicker current={s.bgm_mode} bgmName={s.bgm_name}
-        onPick={(m) => { setS({ bgm_mode: m }); setMusicOpen(false) }}
-        onPickFile={() => { setMusicOpen(false); setTimeout(() => audioRef.current && audioRef.current.click(), 50) }}
+      {musicOpen && <MusicPicker current={s.bgm_mode === 'file' ? s.bgm_file : s.bgm_mode}
+        onPick={(patch) => { setS(patch); setMusicOpen(false) }}
+        busy={setBusyMsg}
         onClose={() => setMusicOpen(false)} />}
     </div>
   )
