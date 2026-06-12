@@ -72,8 +72,7 @@ def auth_google(b: GoogleIn, s: Session = Depends(get_db)):
     else:
         u.email = info.get("email"); u.name = info.get("name")
     s.commit(); s.refresh(u)
-    return {"token": auth.make_jwt(u.id),
-            "user": {"email": u.email, "name": u.name, "has_key": bool(u.enc_key)}}
+    return {"token": auth.make_jwt(u.id), "user": _user_obj(u)}
 
 
 @app.post("/api/auth/dev")
@@ -84,14 +83,17 @@ def auth_dev(s: Session = Depends(get_db)):
     u = s.query(User).filter_by(sub="dev-guest").first()
     if not u:
         u = User(sub="dev-guest", email="guest@dsm.local", name="게스트"); s.add(u); s.commit(); s.refresh(u)
-    return {"token": auth.make_jwt(u.id),
-            "user": {"email": u.email, "name": u.name, "has_key": bool(u.enc_key)}}
+    return {"token": auth.make_jwt(u.id), "user": _user_obj(u)}
+
+
+def _user_obj(u):
+    return {"email": u.email, "name": u.name, "has_key": bool(u.enc_key),
+            "watermark": (u.watermark is not False)}
 
 
 @app.get("/api/me")
 def me(uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
-    u = s.get(User, uid)
-    return {"email": u.email, "name": u.name, "has_key": bool(u.enc_key)}
+    return _user_obj(s.get(User, uid))
 
 
 @app.post("/api/key")

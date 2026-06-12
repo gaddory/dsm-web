@@ -32,7 +32,24 @@ function drawLine(ctx, cx, y, text, fStr, fill, stroke) {
   ctx.fillStyle = fill; ctx.fillText(text, cx, y)
 }
 
-// scene: {imgEl, lines[], center, header, footer, bright, font:{size,color[]}|null, goldLast}
+// 워터마크: 우하단, 2줄 가운데정렬, 반투명 (렌더 결과와 동일)
+function drawWatermark(ctx) {
+  const lines = ['DSM(DoryShortsMaker)', '-Dory-']
+  const fs = 36
+  ctx.font = fontStr(fs, true); ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+  const lh = lineH(ctx, fs), gap = 6
+  const bw = Math.max(...lines.map(l => ctx.measureText(l).width))
+  const marginR = 34, marginB = 46
+  const cx = FW - marginR - bw / 2
+  let y = FH - marginB - (lh * lines.length + gap * (lines.length - 1))
+  for (const l of lines) {
+    ctx.fillStyle = 'rgba(0,0,0,0.47)'; ctx.fillText(l, cx + 2, y + 2)
+    ctx.fillStyle = 'rgba(255,255,255,0.63)'; ctx.fillText(l, cx, y)
+    y += lh + gap
+  }
+}
+
+// scene: {imgEl, lines[], center, header, footer, bright, font:{size,color[]}|null, goldLast, watermark}
 export function drawScene(canvas, scene) {
   const ctx = canvas.getContext('2d')
   ctx.clearRect(0, 0, FW, FH)
@@ -70,6 +87,7 @@ export function drawScene(canvas, scene) {
       drawLine(ctx, FW / 2, y, l, fontStr(s, true), col, stroke); y += lh + gap
     })
   }
+  if (scene.watermark) drawWatermark(ctx)
 }
 
 // 전환: A→B (오프스크린 캔버스 2장) 를 visible ctx에 합성

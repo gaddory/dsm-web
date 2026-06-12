@@ -95,7 +95,7 @@ function Login({ onUser }) {
 }
 
 // ───────── 미리보기 ─────────
-function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null, active = true, bgmUrl = null }) {
+function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null, active = true, bgmUrl = null, watermark = false }) {
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
@@ -107,14 +107,14 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
   useEffect(() => {
     offRef.current = scenes.map(sc => {
       const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH
-      drawScene(cv, { ...sc, imgEl: sc.imgUrl ? images[sc.imgUrl] : null }); return cv
+      drawScene(cv, { ...sc, imgEl: sc.imgUrl ? images[sc.imgUrl] : null, watermark }); return cv
     })
     if (!stateRef.current.playing) {
       const i = (focus != null ? focus : stateRef.current.idx)
       stateRef.current.idx = Math.max(0, Math.min(i, scenes.length - 1))
       showStatic(stateRef.current.idx)
     }
-  }, [scenes, images, focus])
+  }, [scenes, images, focus, watermark])
 
   const showStatic = (i) => {
     const cv = canvasRef.current, off = offRef.current; if (!cv || !off.length) return
@@ -848,7 +848,7 @@ export default function App() {
       ) : isMobile ? (
         <div className="studio-mobile">
           <div className="m-canvas">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} />
           </div>
           <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
           <div className="m-edit">
@@ -868,7 +868,7 @@ export default function App() {
             <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} />
           </aside>
           <main className="panel canvas-panel">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} />
           </main>
           <aside className="panel props-panel">
             <div className="prop-tabs">
