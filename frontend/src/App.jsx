@@ -99,6 +99,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
+  const autoRef = useRef(false)
   const cfg = useRef(settings); cfg.current = settings
   const scn = useRef(scenes); scn.current = scenes
 
@@ -137,6 +138,13 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
   const pause = () => { stateRef.current.playing = false; setPlaying(false); cancelAnimationFrame(rafRef.current) }
   const jump = (d) => { const st = stateRef.current, n = offRef.current.length; if (!n) return; st.idx = (st.idx + d + n) % n; st.phase = 'hold'; st.start = performance.now(); setIdx(st.idx); showStatic(st.idx) }
   useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
+  // 기본값: 콘텐츠 준비되면 자동 재생(1회)
+  useEffect(() => {
+    if (autoRef.current || !offRef.current.length) return
+    autoRef.current = true
+    const t = setTimeout(() => { if (!stateRef.current.playing) play() }, 200)
+    return () => clearTimeout(t)
+  }, [scenes])
 
   return (
     <div className="preview">
@@ -454,6 +462,7 @@ export default function App() {
 
   // 프로젝트
   const newProject = () => { if (!confirm('새 프로젝트를 시작할까요? (저장 안 한 변경은 사라져요)')) return; setProject(defaultProject()); setPid(null); setPname('제목 없음') }
+  const resetProject = () => { if (!confirm(`'${pname || '제목 없음'}'의 모든 내용을 초기화하시겠습니까?`)) return; setProject(defaultProject()); setSel(0) }
   const saveProject = async () => {
     try {
       if (pid) { await api.updateProject(pid, pname, serialize(project)) }
@@ -567,19 +576,25 @@ export default function App() {
   return (
     <div className="app studio">
       <header className="topbar">
-        <span className="logo">DSM</span><span className="logo-sub">Studio</span>
-        <input className="proj-name" value={pname} onChange={e => setPname(e.target.value)} placeholder="제목 없음" />
-        <select className="proj-pick" value={pid || ''} onChange={e => openProject(e.target.value)}>
-          <option value="">내 프로젝트…</option>
-          {projList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <button className="btn ghost sm" onClick={saveProject}>저장</button>
-        <button className="btn ghost sm" onClick={newProject}>새로</button>
-        <span className="spacer" />
-        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') setTab('edit'); else { setTab('vids'); loadVideos() } }}>내 영상</button>
-        <span className="muted acct">{user.name || user.email}</span>
-        <button className="btn ghost sm" onClick={logout}>로그아웃</button>
-        {tab !== 'vids' && <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
+        <div className="tb-row tb-nav">
+          <span className="logo" role="button" onClick={() => setTab('edit')}>DSM</span>
+          <button className={'navtab' + (tab === 'edit' ? ' on' : '')} onClick={() => setTab('edit')}>메인</button>
+          <button className={'navtab' + (tab === 'vids' ? ' on' : '')} onClick={() => { setTab('vids'); loadVideos() }}>내 영상</button>
+          <span className="spacer" />
+          <span className="muted acct">{user.name || user.email}</span>
+          <button className="btn ghost sm" onClick={logout}>로그아웃</button>
+          {tab !== 'vids' && <button className="btn primary sm" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
+        </div>
+        {tab !== 'vids' && <div className="tb-row tb-proj">
+          <span className="lbl">프로젝트</span>
+          <input className="proj-name" value={pname} onChange={e => setPname(e.target.value)} placeholder="제목 없음" />
+          <button className="btn success sm" onClick={saveProject}>저장</button>
+          <button className="btn ghost sm" onClick={resetProject}>초기화</button>
+          <select className="proj-pick" value={pid || ''} onChange={e => openProject(e.target.value)}>
+            <option value="">내 프로젝트 열기…</option>
+            {projList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>}
       </header>
 
       {tab === 'vids' ? (
