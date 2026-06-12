@@ -225,11 +225,13 @@ function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, f
         <button className="btn ghost sm" onClick={() => fileRef.current.click()}>찾기</button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickFile} />
       </div>
-      <div className="row">
-        <span className="lbl">프롬프트<button className="qmark" onClick={onHelp} title="작성법">?</button></span>
-        <textarea className="grow prompt-ta" rows={3} value={cut.prompt} onChange={e => up({ prompt: e.target.value })} placeholder={'AI 프롬프트를 작성하세요\n(이미지가 없을경우 AI생성)\n* 추천을 클릭하면 자막에 맞는 이미지를 생성합니다.'} />
-        <button className="btn info-o sm" onClick={suggest}>추천</button>
-        <button className="btn warn sm" onClick={genAi}>AI이미지 생성</button>
+      <div className="prompt-block">
+        <div className="prompt-top"><span className="lbl">프롬프트</span><button className="qmark" onClick={onHelp} title="작성법">?</button></div>
+        <textarea className="prompt-ta" rows={3} value={cut.prompt} onChange={e => up({ prompt: e.target.value })} placeholder={'AI 프롬프트를 작성하세요\n(이미지가 없을경우 AI생성)\n* 추천을 클릭하면 자막에 맞는 이미지를 생성합니다.'} />
+        <div className="prompt-actions">
+          <button className="btn info-o sm" onClick={suggest}>추천</button>
+          <button className="btn warn sm" onClick={genAi}>AI이미지 생성</button>
+        </div>
       </div>
       {loading && <div className="cut-foot">{loading}</div>}
     </div>
