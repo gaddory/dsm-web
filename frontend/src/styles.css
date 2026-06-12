@@ -225,6 +225,17 @@ select { cursor: pointer; }
 .cd-mark { padding: 5px 14px; border-radius: 999px; background: rgba(41, 192, 129, .15); color: var(--success); border: 1px solid rgba(41, 192, 129, .4); font-weight: 800; font-size: 13px; }
 .cd-title { font-size: 17px; font-weight: 800; color: var(--fg); margin-top: 4px; }
 .contact-done .btn { margin-top: 8px; }
+
+/* 모바일 가로 → 세로 모드 안내(세로 고정) */
+.rotate-lock { display: none; }
+@keyframes rlRot { 0%, 35% { transform: rotate(0) } 55%, 100% { transform: rotate(-90deg) } }
+@media (max-width: 920px) and (orientation: landscape) {
+  .rotate-lock { display: flex; position: fixed; inset: 0; z-index: 99999; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px; background: var(--bg); text-align: center; padding: 24px; }
+  .rl-phone { width: 50px; height: 84px; border: 3px solid var(--gold); border-radius: 12px; animation: rlRot 1.8s ease-in-out infinite; }
+  .rl-title { font-size: 18px; font-weight: 800; color: var(--fg); }
+  .rl-sub { font-size: 14px; color: var(--muted); }
+}
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }
