@@ -329,6 +329,27 @@ def build_scenes(project):
     return scenes
 
 
+def make_watermark(out_png, lines=("DSM(DoryShortsMaker)", "-Dory-")):
+    """반투명 워터마크 PNG(우하단 배치, 여러 줄 가운데정렬)."""
+    fnt = ImageFont.truetype(FONT_B, 36)
+    dummy = ImageDraw.Draw(Image.new("RGBA", (4, 4)))
+    box = [dummy.textbbox((0, 0), ln, font=fnt) for ln in lines]
+    hs = [b[3] - b[1] for b in box]
+    gap, pad = 6, 14
+    tw = max(b[2] - b[0] for b in box)
+    th = sum(hs) + gap * (len(lines) - 1)
+    img = Image.new("RGBA", (tw + pad * 2, th + pad * 2), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    y = pad
+    for ln, b, h in zip(lines, box, hs):
+        x = pad + (tw - (b[2] - b[0])) / 2 - b[0]
+        d.text((x + 2, y + 2 - b[1]), ln, font=fnt, fill=(0, 0, 0, 120))
+        d.text((x, y - b[1]), ln, font=fnt, fill=(255, 255, 255, 160))
+        y += h + gap
+    img.save(out_png)
+    return out_png
+
+
 def render_video(project, workdir, progress=None):
     os.makedirs(workdir, exist_ok=True)
     scenes = build_scenes(project)
@@ -352,6 +373,14 @@ def render_video(project, workdir, progress=None):
     silent = os.path.join(workdir, "_silent.mp4")
     total = xfade_concat(clips, durs, silent, transition=s.get("transition", "fade"),
                          tr=float(s.get("trans_dur", 0.45)))
+    if s.get("watermark"):
+        log("워터마크 적용 중…")
+        wm = os.path.join(workdir, "_wm.png"); make_watermark(wm)
+        sw = os.path.join(workdir, "_wmv.mp4")
+        _run([FFMPEG, "-y", "-i", silent, "-i", wm, "-filter_complex",
+              "[0:v][1:v]overlay=W-w-34:H-h-46", "-c:v", "libx264", "-preset", "veryfast",
+              "-pix_fmt", "yuv420p", "-threads", "1", "-an", sw])
+        silent = sw
     out = s.get("out_path") or os.path.join(app_dir(), "shorts_output.mp4")
     mode = s.get("bgm_mode") or ("auto" if s.get("bgm", True) else "none")
     bfile = s.get("bgm_file", "")

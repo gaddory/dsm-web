@@ -3,13 +3,13 @@
 미디어(이미지/오디오/영상)는 DB에 저장(유저별), /api/media/{id}?token= 으로 서빙."""
 import os, uuid, base64, shutil, threading, json
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 import engine, auth
-from db import init_db, get_db, SessionLocal, User, Project, Media
+from db import init_db, get_db, SessionLocal, User, Project, Media, Setting
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(BASE, "data", "work")
@@ -212,6 +212,8 @@ def render(b: RenderIn, uid: int = Depends(auth.current_uid), s: Session = Depen
         open(p, "wb").write(m.blob); return p
 
     p = b.project; st = dict(p.get("settings", {}))
+    _u = s.get(User, uid)
+    st["watermark"] = bool(_u.watermark) if (_u and _u.watermark is not None) else True
     cuts = []
     for c in p.get("cuts", []):
         c = dict(c)
@@ -311,6 +313,129 @@ def update_project(pid: int, b: ProjIn, uid: int = Depends(auth.current_uid), s:
 @app.delete("/api/projects/{pid}")
 def delete_project(pid: int, uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
     s.delete(_own(pid, uid, s)); s.commit(); return {"ok": True}
+
+
+# ───────── 관리자 ─────────
+_ADMIN_HTML = """<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>DSM 관리자</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c0e13;color:#e8eaf0;font-family:system-ui,'Malgun Gothic',sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:24px 16px}h1{font-size:20px;color:#e3bd82}
+.card{background:#161a22;border:1px solid #232838;border-radius:14px;padding:18px;margin:14px 0}
+input{background:#0e1117;border:1px solid #2a3142;color:#fff;border-radius:8px;padding:10px;font-size:14px}
+button{background:#5b7cfa;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
+button.ghost{background:#222838}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}.muted{color:#8b93a7;font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.err{color:#ff6b6b;font-size:13px;margin-top:8px}
+.sw{position:relative;width:46px;height:26px;display:inline-block}.sw input{display:none}
+.sl{position:absolute;inset:0;background:#3a4256;border-radius:99px;cursor:pointer;transition:.2s}
+.sl:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.sw input:checked+.sl{background:#29c081}.sw input:checked+.sl:before{transform:translateX(20px)}
+</style></head><body><div class="wrap"><h1>DSM 관리자</h1>
+<div id="loginCard" class="card"><div class="row">
+<input id="u" placeholder="아이디" value="admin" style="width:120px">
+<input id="p" type="password" placeholder="비밀번호" style="width:160px">
+<button onclick="login()">로그인</button></div>
+<div id="lerr" class="err"></div>
+<div class="muted" style="margin-top:8px">기본: admin / 1111 (로그인 후 변경 가능)</div></div>
+<div id="panel" style="display:none">
+<div class="card"><div class="row"><b>비밀번호 변경</b>
+<input id="np" type="password" placeholder="새 비밀번호(4자+)" style="width:170px">
+<button onclick="chpw()">변경</button>
+<span class="row" style="margin-left:auto">
+<button class="ghost" onclick="wmAll(true)">전체 ON</button>
+<button class="ghost" onclick="wmAll(false)">전체 OFF</button>
+<button class="ghost" onclick="logout()">로그아웃</button></span></div></div>
+<div class="card"><b>사용자 <span id="cnt" class="muted"></span></b>
+<table><thead><tr><th>이름 / 이메일</th><th>영상</th><th>가입</th><th>워터마크</th></tr></thead>
+<tbody id="rows"></tbody></table></div></div></div>
+<script>
+const T=()=>localStorage.getItem('dsm_adm')||'';
+const H=()=>({'Authorization':'Bearer '+T(),'Content-Type':'application/json'});
+async function login(){
+ const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});
+ const d=await r.json();if(!r.ok){lerr.textContent=d.detail||'실패';return}
+ localStorage.setItem('dsm_adm',d.token);show();}
+function logout(){localStorage.removeItem('dsm_adm');location.reload();}
+async function chpw(){const r=await fetch('/api/admin/password',{method:'POST',headers:H(),body:JSON.stringify({password:np.value})});const d=await r.json();alert(r.ok?'비밀번호가 변경됐어요':(d.detail||'실패'));if(r.ok)np.value='';}
+async function wm(id,on){await fetch('/api/admin/user-watermark',{method:'POST',headers:H(),body:JSON.stringify({user_id:id,on:on})});}
+async function wmAll(on){if(!confirm('모든 사용자 워터마크를 '+(on?'ON':'OFF')+' 할까요?'))return;await fetch('/api/admin/watermark-all',{method:'POST',headers:H(),body:JSON.stringify({on:on})});load();}
+async function load(){
+ const r=await fetch('/api/admin/users',{headers:H()});if(r.status===403||r.status===401){logout();return}
+ const us=await r.json();cnt.textContent='('+us.length+'명)';
+ rows.innerHTML=us.map(x=>'<tr><td><div>'+(x.name||'')+'</div><div class="muted">'+(x.email||'')+'</div></td><td>'+x.videos+'</td><td class="muted">'+x.created+'</td><td><label class="sw"><input type="checkbox" '+(x.watermark?'checked':'')+' onchange="wm('+x.id+',this.checked)"><span class="sl"></span></label></td></tr>').join('');}
+function show(){document.getElementById('loginCard').style.display='none';panel.style.display='';load();}
+if(T())show();
+</script></body></html>"""
+
+
+class AdminLogin(BaseModel):
+    username: str = "admin"
+    password: str
+class WmIn(BaseModel):
+    user_id: int
+    on: bool
+class WmAll(BaseModel):
+    on: bool
+class PwChange(BaseModel):
+    password: str
+
+
+def _admin_pw_hash(s):
+    row = s.get(Setting, "admin_pw")
+    return row.value if row else auth.pw_hash("1111")
+
+
+@app.post("/api/admin/login")
+def admin_login(b: AdminLogin, s: Session = Depends(get_db)):
+    if b.username != "admin" or auth.pw_hash(b.password) != _admin_pw_hash(s):
+        raise HTTPException(401, "아이디 또는 비밀번호가 올바르지 않습니다.")
+    return {"token": auth.make_admin_jwt()}
+
+
+@app.get("/api/admin/users")
+def admin_users(_: bool = Depends(auth.require_admin), s: Session = Depends(get_db)):
+    rows = s.query(User).order_by(User.created.desc()).all()
+    out = []
+    for u in rows:
+        vc = s.query(Media).filter_by(user_id=u.id, kind="video").count()
+        out.append({"id": u.id, "email": u.email, "name": u.name,
+                    "watermark": (u.watermark is not False), "videos": vc,
+                    "created": str(u.created)[:16]})
+    return out
+
+
+@app.post("/api/admin/user-watermark")
+def admin_set_wm(b: WmIn, _: bool = Depends(auth.require_admin), s: Session = Depends(get_db)):
+    u = s.get(User, b.user_id)
+    if not u:
+        raise HTTPException(404, "사용자 없음")
+    u.watermark = bool(b.on); s.commit()
+    return {"ok": True, "watermark": u.watermark}
+
+
+@app.post("/api/admin/watermark-all")
+def admin_wm_all(b: WmAll, _: bool = Depends(auth.require_admin), s: Session = Depends(get_db)):
+    s.query(User).update({User.watermark: bool(b.on)}); s.commit()
+    return {"ok": True}
+
+
+@app.post("/api/admin/password")
+def admin_pw(b: PwChange, _: bool = Depends(auth.require_admin), s: Session = Depends(get_db)):
+    if len(b.password) < 4:
+        raise HTTPException(400, "비밀번호는 4자 이상이어야 합니다.")
+    row = s.get(Setting, "admin_pw")
+    if row:
+        row.value = auth.pw_hash(b.password)
+    else:
+        s.add(Setting(key="admin_pw", value=auth.pw_hash(b.password)))
+    s.commit()
+    return {"ok": True}
+
+
+@app.get("/adm", response_class=HTMLResponse)
+def admin_page():
+    return _ADMIN_HTML
 
 
 # ───────── 프론트(React 빌드) 서빙 — 단일 URL ─────────

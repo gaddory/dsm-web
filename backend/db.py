@@ -2,7 +2,7 @@
 """DB 모델 — 유저 / 프로젝트 / 미디어(이미지·오디오·영상). DATABASE_URL(Postgres) 없으면 SQLite."""
 import os
 from sqlalchemy import (create_engine, Column, Integer, String, Text, LargeBinary,
-                        DateTime, ForeignKey, func)
+                        DateTime, ForeignKey, Boolean, func)
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -47,6 +47,7 @@ class User(Base):
     email = Column(String(256))
     name = Column(String(256))
     enc_key = Column(Text)                                # 암호화된 OpenAI 키
+    watermark = Column(Boolean, default=True)             # 영상 워터마크 표시 여부(관리자 제어)
     created = Column(DateTime, server_default=func.now())
 
 
@@ -70,19 +71,29 @@ class Media(Base):
     created = Column(DateTime, server_default=func.now())
 
 
+class Setting(Base):
+    __tablename__ = "settings"
+    key = Column(String(64), primary_key=True)
+    value = Column(Text)
+
+
 def init_db():
     Base.metadata.create_all(engine)
-    # 기존 media 테이블에 name 컬럼이 없으면 추가(베스트에포트)
+    # 기존 테이블 컬럼 추가(베스트에포트)
     try:
         with engine.begin() as conn:
             if DATABASE_URL.startswith("sqlite"):
-                cols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(media)").fetchall()]
-                if "name" not in cols:
+                mcols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(media)").fetchall()]
+                if "name" not in mcols:
                     conn.exec_driver_sql("ALTER TABLE media ADD COLUMN name VARCHAR(256)")
+                ucols = [r[1] for r in conn.exec_driver_sql("PRAGMA table_info(users)").fetchall()]
+                if "watermark" not in ucols:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN watermark INTEGER DEFAULT 1")
             else:
                 conn.exec_driver_sql("ALTER TABLE media ADD COLUMN IF NOT EXISTS name VARCHAR(256)")
+                conn.exec_driver_sql("ALTER TABLE users ADD COLUMN IF NOT EXISTS watermark BOOLEAN DEFAULT TRUE")
     except Exception as e:
-        print("⚠ media.name 마이그레이션 스킵:", e)
+        print("⚠ 컬럼 마이그레이션 스킵:", e)
 
 
 def get_db():

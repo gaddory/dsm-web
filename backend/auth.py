@@ -36,6 +36,25 @@ def make_jwt(uid):
                       JWT_SECRET, algorithm="HS256")
 
 
+def make_admin_jwt():
+    return jwt.encode({"adm": True, "exp": int(time.time()) + 60 * 60 * 24 * 7},
+                      JWT_SECRET, algorithm="HS256")
+
+
+def require_admin(authorization: str = Header(None)):
+    raw = authorization.split(" ", 1)[1] if (authorization and authorization.startswith("Bearer ")) else None
+    try:
+        if raw and jwt.decode(raw, JWT_SECRET, algorithms=["HS256"]).get("adm"):
+            return True
+    except Exception:
+        pass
+    raise HTTPException(403, "관리자 인증이 필요합니다.")
+
+
+def pw_hash(pw):
+    return hashlib.sha256(("dsm-adm:" + (pw or "")).encode()).hexdigest()
+
+
 def _parse(raw):
     try:
         return jwt.decode(raw, JWT_SECRET, algorithms=["HS256"]).get("uid")
