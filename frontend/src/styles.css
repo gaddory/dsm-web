@@ -192,6 +192,18 @@ select { cursor: pointer; }
 .splash-line { color: var(--muted); font-size: 14px; margin: 4px 0; opacity: .3; transition: opacity .35s; white-space: nowrap; }
 .splash-line.on { color: var(--fg-dim); opacity: 1; }
 .splash.min { background: var(--bg); z-index: 100; }
+
+/* 사용 도움말 가이드 */
+.guide-btn { margin-left: 14px; }
+.guide { text-align: center; padding: 10px 6px 4px; }
+.guide-icon { font-size: 64px; line-height: 1; margin-bottom: 14px; animation: guidePop .45s ease; }
+@keyframes guidePop { 0% { transform: scale(.4) translateY(12px); opacity: 0 } 60% { transform: scale(1.14) } 100% { transform: scale(1); opacity: 1 } }
+.guide-title { font-size: 18px; font-weight: 800; color: var(--gold); margin-bottom: 10px; animation: guideFade .4s ease; }
+.guide-desc { color: var(--fg-dim); line-height: 1.65; font-size: 14.5px; min-height: 80px; animation: guideFade .5s ease; }
+@keyframes guideFade { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+.guide-dots { display: flex; gap: 7px; justify-content: center; margin-top: 18px; }
+.gdot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-soft); cursor: pointer; transition: .2s; }
+.gdot.on { background: var(--primary); width: 22px; border-radius: 5px; }
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }

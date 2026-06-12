@@ -310,6 +310,37 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
+function Guide({ onClose }) {
+  const steps = [
+    { icon: '👋', title: '환영해요!', desc: 'DSM은 자막과 이미지로 세로 숏츠 영상을 만드는 도구예요. 7단계로 차근차근 알려줄게요.' },
+    { icon: '✍️', title: '1. 장면에 자막 쓰기', desc: '왼쪽에서 장면을 고르고, 오른쪽 [이 장면]에서 자막을 입력해요. “＋ 장면”으로 추가하고 ↑↓로 순서를 바꿔요.' },
+    { icon: '🖼️', title: '2. 이미지 넣기', desc: '[찾기]로 내 사진을 넣거나, 프롬프트를 적고 [AI이미지 생성]으로 만들 수 있어요. 프롬프트 옆 “?” 를 누르면 작성법이 나와요.' },
+    { icon: '▶️', title: '3. 미리보기', desc: '가운데 화면에서 바로 재생돼요. “🔊 배경음악 같이 듣기”를 켜면 음악까지 들으면서 확인할 수 있어요.' },
+    { icon: '⚙️', title: '4. 전체 설정', desc: '폰트, 자막 위치, 화면 전환, 배경음악, 엔딩 문구까지 [전체 설정]에서 한 번에 조절해요.' },
+    { icon: '🎬', title: '5. 영상 만들기', desc: '오른쪽 위 [영상 만들기]를 누르면 완성! 잠시 뒤 [내 영상]에서 다운로드하고 관리할 수 있어요.' },
+    { icon: '💾', title: '저장은 자동이에요', desc: '작업은 자동 저장돼요. 프로젝트 이름을 짓고 [저장]을 누르면 계정에 안전하게 보관돼요. 이제 시작해볼까요?' },
+  ]
+  const [i, setI] = useState(0)
+  const last = i === steps.length - 1
+  const st = steps[i]
+  return (
+    <Modal title="사용 도움말" onClose={onClose}>
+      <div className="guide">
+        <div className="guide-icon" key={i}>{st.icon}</div>
+        <div className="guide-title" key={'t' + i}>{st.title}</div>
+        <div className="guide-desc" key={'d' + i}>{st.desc}</div>
+        <div className="guide-dots">{steps.map((_, k) => <span key={k} className={'gdot' + (k === i ? ' on' : '')} onClick={() => setI(k)} />)}</div>
+      </div>
+      <div className="modal-btns">
+        <button className="btn ghost" disabled={i === 0} onClick={() => setI(i - 1)}>이전</button>
+        {last
+          ? <button className="btn primary" onClick={onClose}>시작하기 🚀</button>
+          : <button className="btn primary" onClick={() => setI(i + 1)}>다음</button>}
+      </div>
+    </Modal>
+  )
+}
+
 function Splash() {
   const [dots, setDots] = useState(1)
   const [step, setStep] = useState(0)
@@ -533,6 +564,7 @@ export default function App() {
   const [lightbox, setLightbox] = useState(null)
   const [musicOpen, setMusicOpen] = useState(false)
   const [promptHelp, setPromptHelp] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -549,6 +581,7 @@ export default function App() {
   useBackClose(!!lightbox, () => setLightbox(null))
   useBackClose(musicOpen, () => setMusicOpen(false))
   useBackClose(promptHelp, () => setPromptHelp(false))
+  useBackClose(guideOpen, () => setGuideOpen(false))
   useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
     const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -595,7 +628,7 @@ export default function App() {
   const urls = [...project.cuts.map(c => c.image_url), s.ending_url].filter(Boolean)
   const images = useImages(urls)
   const sceneEls = scenes.map(sc => ({ ...sc, dur: sc.center === 0.55 ? (s.cta_dur || 4.6) : s.scene_dur }))
-  const anyModal = settingsOpen || musicOpen || promptHelp || !!fontDlg || transHelp || !!aiResult || !!lightbox
+  const anyModal = settingsOpen || musicOpen || promptHelp || guideOpen || !!fontDlg || transHelp || !!aiResult || !!lightbox
   const bgmUrl = s.bgm_mode === 'none' ? null
     : s.bgm_mode === 'file' ? (s.bgm_file ? mediaUrl(s.bgm_file) : null)
       : `/api/bgm-preview?mood=${s.bgm_mode}`
@@ -765,6 +798,7 @@ export default function App() {
           <span className="logo" role="button" onClick={() => setTab('edit')}>DSM</span>
           <button className={'navtab' + (tab === 'edit' ? ' on' : '')} onClick={() => setTab('edit')}>메인</button>
           <button className={'navtab' + (tab === 'vids' ? ' on' : '')} onClick={() => { setTab('vids'); loadVideos() }}>내 영상</button>
+          <button className="btn ghost sm guide-btn" onClick={() => setGuideOpen(true)}>📖 사용 도움말</button>
           <span className="spacer" />
           <span className="muted acct">{user.name || user.email}</span>
           <button className="btn ghost sm" onClick={logout}>로그아웃</button>
@@ -859,6 +893,7 @@ export default function App() {
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
       {promptHelp && <PromptHelp onClose={() => setPromptHelp(false)} />}
+      {guideOpen && <Guide onClose={() => setGuideOpen(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
       {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
         <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
