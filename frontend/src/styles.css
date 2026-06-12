@@ -206,6 +206,23 @@ select { cursor: pointer; }
 .guide-dots { display: flex; gap: 7px; justify-content: center; margin-top: 18px; }
 .gdot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-soft); cursor: pointer; transition: .2s; }
 .gdot.on { background: var(--primary); width: 22px; border-radius: 5px; }
+
+/* 사용 문의 */
+.pv-top { align-self: flex-end; margin-bottom: 8px; }
+.contact { display: flex; flex-direction: column; gap: 14px; }
+.contact-id { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.ci-row { display: flex; align-items: center; gap: 10px; }
+.ci-label { color: var(--gold); font-weight: 700; font-size: 13px; }
+.ci-val { color: var(--fg); font-weight: 600; }
+.ci-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.contact-field { display: flex; flex-direction: column; gap: 6px; }
+.contact-field > span { color: var(--fg-dim); font-weight: 700; font-size: 13px; }
+.contact-field input, .contact-field textarea { width: 100%; box-sizing: border-box; font: inherit; }
+.contact-field textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+.contact-done { text-align: center; padding: 18px 6px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cd-mark { padding: 5px 14px; border-radius: 999px; background: rgba(41, 192, 129, .15); color: var(--success); border: 1px solid rgba(41, 192, 129, .4); font-weight: 800; font-size: 13px; }
+.cd-title { font-size: 17px; font-weight: 800; color: var(--fg); margin-top: 4px; }
+.contact-done .btn { margin-top: 8px; }
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }

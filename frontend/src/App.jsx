@@ -95,7 +95,7 @@ function Login({ onUser }) {
 }
 
 // ───────── 미리보기 ─────────
-function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null, active = true, bgmUrl = null, watermark = false }) {
+function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null, active = true, bgmUrl = null, watermark = false, onInquiry = null }) {
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
@@ -164,6 +164,9 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
 
   return (
     <div className="preview">
+      {watermark && onInquiry && <div className="pv-top">
+        <button className="btn ghost xs" onClick={onInquiry}>워터마크 제거 및 사용문의</button>
+      </div>}
       <div className="pv-frame">
         <canvas ref={canvasRef} width={FW} height={FH} className="pv-canvas" />
         {!scenes.length && <div className="pv-empty">재생을 누르면<br />여기서 재생돼요</div>}
@@ -303,6 +306,53 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
             {images.map((im, i) =>
               <img key={i} src={im.image_b64} className={'ai-thumb' + (i === sel ? ' on' : '')}
                 onClick={() => setSel(i)} alt={'후보 ' + (i + 1)} />)}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+}
+
+function Contact({ email, onClose }) {
+  const [subject, setSubject] = useState('워터마크 제거 문의')
+  const [body, setBody] = useState('')
+  const [sending, setSending] = useState(false)
+  const [done, setDone] = useState(false)
+  const send = async () => {
+    if (!body.trim()) return alert('내용을 입력해주세요.')
+    setSending(true)
+    try {
+      const r = await fetch('https://formsubmit.co/ajax/twosd87@naver.com', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ _subject: '[DSM 문의] ' + subject, _template: 'table', 사용자ID: email, 제목: subject, 내용: body })
+      })
+      if (!r.ok) throw new Error()
+      setDone(true)
+    } catch (e) { alert('전송에 실패했어요. 잠시 후 다시 시도해주세요.') }
+    finally { setSending(false) }
+  }
+  return (
+    <Modal title="DSM · 사용 문의" onClose={onClose} wide>
+      {done ? (
+        <div className="contact-done">
+          <div className="cd-mark">접수 완료</div>
+          <div className="cd-title">문의가 정상적으로 접수됐어요</div>
+          <div className="muted">내용을 확인하고 빠르게 답변드릴게요.</div>
+          <button className="btn primary" onClick={onClose}>닫기</button>
+        </div>
+      ) : (
+        <div className="contact">
+          <div className="contact-id">
+            <div className="ci-row"><span className="ci-label">사용자 ID</span><span className="ci-val">{email || '게스트'}</span></div>
+            <div className="ci-note">기본 설정값 · 수정 불가</div>
+          </div>
+          <label className="contact-field"><span>제목</span>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="제목을 입력하세요" /></label>
+          <label className="contact-field"><span>내용</span>
+            <textarea rows={6} value={body} onChange={e => setBody(e.target.value)} placeholder="문의 내용을 자세히 적어주세요. (워터마크 제거, 요금, 기능 등)" /></label>
+          <div className="modal-btns">
+            <button className="btn primary" disabled={sending} onClick={send}>{sending ? '보내는 중…' : '문의 보내기'}</button>
+            <button className="btn ghost" disabled={sending} onClick={onClose}>닫기</button>
           </div>
         </div>
       )}
@@ -565,6 +615,7 @@ export default function App() {
   const [musicOpen, setMusicOpen] = useState(false)
   const [promptHelp, setPromptHelp] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -582,6 +633,7 @@ export default function App() {
   useBackClose(musicOpen, () => setMusicOpen(false))
   useBackClose(promptHelp, () => setPromptHelp(false))
   useBackClose(guideOpen, () => setGuideOpen(false))
+  useBackClose(contactOpen, () => setContactOpen(false))
   useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
     const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -628,7 +680,7 @@ export default function App() {
   const urls = [...project.cuts.map(c => c.image_url), s.ending_url].filter(Boolean)
   const images = useImages(urls)
   const sceneEls = scenes.map(sc => ({ ...sc, dur: sc.center === 0.55 ? (s.cta_dur || 4.6) : s.scene_dur }))
-  const anyModal = settingsOpen || musicOpen || promptHelp || guideOpen || !!fontDlg || transHelp || !!aiResult || !!lightbox
+  const anyModal = settingsOpen || musicOpen || promptHelp || guideOpen || contactOpen || !!fontDlg || transHelp || !!aiResult || !!lightbox
   const bgmUrl = s.bgm_mode === 'none' ? null
     : s.bgm_mode === 'file' ? (s.bgm_file ? mediaUrl(s.bgm_file) : null)
       : `/api/bgm-preview?mood=${s.bgm_mode}`
@@ -848,7 +900,7 @@ export default function App() {
       ) : isMobile ? (
         <div className="studio-mobile">
           <div className="m-canvas">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} onInquiry={() => setContactOpen(true)} />
           </div>
           <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
           <div className="m-edit">
@@ -868,7 +920,7 @@ export default function App() {
             <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} />
           </aside>
           <main className="panel canvas-panel">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} watermark={!!user.watermark} onInquiry={() => setContactOpen(true)} />
           </main>
           <aside className="panel props-panel">
             <div className="prop-tabs">
@@ -894,6 +946,7 @@ export default function App() {
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
       {promptHelp && <PromptHelp onClose={() => setPromptHelp(false)} />}
       {guideOpen && <Guide onClose={() => setGuideOpen(false)} />}
+      {contactOpen && <Contact email={user.email} onClose={() => setContactOpen(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
       {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
         <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
