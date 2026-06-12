@@ -168,6 +168,16 @@ select { cursor: pointer; }
 .modal.wide { width: 660px; }
 .modal-loading { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center;
   justify-content: center; gap: 12px; background: rgba(12, 14, 19, .85); border-radius: inherit; color: var(--fg); font-weight: 600; }
+.qmark { margin-left: 5px; width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--border-soft);
+  background: var(--surface-2); color: var(--fg-dim); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; vertical-align: middle; }
+.qmark:hover { color: var(--fg); border-color: var(--primary); }
+.prompt-ta { resize: none; min-height: 70px; line-height: 1.4; font: inherit; }
+.phelp { color: var(--fg-dim); line-height: 1.6; font-size: 14px; }
+.phelp b { color: var(--fg); }
+.phelp .phelp-eg { color: var(--gold); background: var(--surface-2); padding: 8px 11px; border-radius: 8px; margin: 8px 0; }
+.phelp ul { margin: 8px 0; padding-left: 18px; }
+.phelp li { margin: 4px 0; }
+.phelp-tip { background: rgba(91, 124, 250, .1); border: 1px solid rgba(91, 124, 250, .25); padding: 9px 11px; border-radius: 8px; margin: 8px 0; }
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }

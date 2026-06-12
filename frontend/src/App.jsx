@@ -183,7 +183,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
 }
 
 // ───────── 컷 ─────────
-function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, fontMode, onCutFont, onImage }) {
+function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, fontMode, onCutFont, onImage, onHelp }) {
   const [loading, setLoading] = useState(''); const fileRef = useRef(null)
   const up = (patch) => onChange({ ...cut, ...patch })
   const pickFile = async (e) => {
@@ -226,8 +226,8 @@ function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, f
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickFile} />
       </div>
       <div className="row">
-        <span className="lbl">프롬프트</span>
-        <input className="grow" value={cut.prompt} onChange={e => up({ prompt: e.target.value })} placeholder="영어 프롬프트(추천 가능)" />
+        <span className="lbl">프롬프트<button className="qmark" onClick={onHelp} title="작성법">?</button></span>
+        <textarea className="grow prompt-ta" rows={3} value={cut.prompt} onChange={e => up({ prompt: e.target.value })} placeholder={'AI 프롬프트를 작성하세요\n(이미지가 없을경우 AI생성)\n* 추천을 클릭하면 자막에 맞는 이미지를 생성합니다.'} />
         <button className="btn info-o sm" onClick={suggest}>추천</button>
         <button className="btn warn sm" onClick={genAi}>AI이미지 생성</button>
       </div>
@@ -304,6 +304,25 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
           </div>
         </div>
       )}
+    </Modal>
+  )
+}
+
+function PromptHelp({ onClose }) {
+  return (
+    <Modal title="프롬프트, 어떻게 쓸까?" onClose={onClose}>
+      <div className="phelp">
+        <p>그리고 싶은 장면을 <b>그냥 말하듯이</b> 적으면 돼요. 한국어도 되고 영어도 돼요.</p>
+        <p className="phelp-eg">예) <i>비 오는 새벽 골목, 우산 쓰고 혼자 걷는 뒷모습, 쓸쓸한 분위기</i></p>
+        <ul>
+          <li><b>뭐가 보이나</b> — 인물·사물·배경 (혼자/둘, 낮/밤, 안/밖)</li>
+          <li><b>분위기</b> — 따뜻한, 쓸쓸한, 설레는, 차분한…</li>
+          <li><b>느낌</b> — 영화 한 장면처럼, 수채화풍, 빛바랜 사진…</li>
+        </ul>
+        <p className="phelp-tip">💡 <b>AI 티 덜 나게</b> — “실제 사진처럼, 자연광, 필름 감성, 살짝 흐릿하게” 같은 말을 붙이면 훨씬 자연스러워요. 너무 매끈·완벽하면 오히려 AI 같아 보이거든요.</p>
+        <p className="phelp-tip">자막을 먼저 쓰고 <b>추천</b>을 누르면 알아서 만들어주기도 해요.</p>
+      </div>
+      <div className="modal-btns"><button className="btn primary" onClick={onClose}>알겠어요</button></div>
     </Modal>
   )
 }
@@ -485,6 +504,7 @@ export default function App() {
   const [selVids, setSelVids] = useState(() => new Set())
   const [lightbox, setLightbox] = useState(null)
   const [musicOpen, setMusicOpen] = useState(false)
+  const [promptHelp, setPromptHelp] = useState(false)
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -500,6 +520,7 @@ export default function App() {
   useBackClose(tab === 'vids', () => setTab('edit'))      // 내영상 → 뒤로가기 → 메인(편집)
   useBackClose(!!lightbox, () => setLightbox(null))
   useBackClose(musicOpen, () => setMusicOpen(false))
+  useBackClose(promptHelp, () => setPromptHelp(false))
   useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
     const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -539,7 +560,7 @@ export default function App() {
   const urls = [...project.cuts.map(c => c.image_url), s.ending_url].filter(Boolean)
   const images = useImages(urls)
   const sceneEls = scenes.map(sc => ({ ...sc, dur: sc.center === 0.55 ? (s.cta_dur || 4.6) : s.scene_dur }))
-  const anyModal = settingsOpen || musicOpen || !!fontDlg || transHelp || !!aiResult || !!lightbox
+  const anyModal = settingsOpen || musicOpen || promptHelp || !!fontDlg || transHelp || !!aiResult || !!lightbox
   const bgmUrl = s.bgm_mode === 'none' ? null
     : s.bgm_mode === 'file' ? (s.bgm_file ? mediaUrl(s.bgm_file) : null)
       : `/api/bgm-preview?mood=${s.bgm_mode}`
@@ -695,7 +716,7 @@ export default function App() {
       <div className="cuts-scroll">
         {project.cuts.map((c, i) =>
           <CutRow key={i} idx={i} cut={c} onChange={(nc) => setCut(i, nc)} onMove={(d) => moveCut(i, d)} onDel={() => delCut(i)}
-            hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />)}
+            hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} onHelp={() => setPromptHelp(true)} />)}
       </div>
     </div>
   )
@@ -760,7 +781,7 @@ export default function App() {
           </div>
           <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
           <div className="m-edit">
-            {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />}
+            {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} onHelp={() => setPromptHelp(true)} />}
           </div>
           <div className="mbar">
             <button className="btn info" onClick={() => setSettingsOpen(true)}>전체 설정</button>
@@ -786,7 +807,7 @@ export default function App() {
             <div className="prop-body">
               {propTab === 'scene'
                 ? (project.cuts[sel]
-                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />
+                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} onHelp={() => setPromptHelp(true)} />
                   : <p className="muted">장면을 선택하세요</p>)
                 : <div className="gset">{basicSettings}{screenSettings}</div>}
             </div>
@@ -800,6 +821,7 @@ export default function App() {
       {render && <div className="overlay"><div className="busy"><div className="spinner" /><div>{render.progress}</div></div></div>}
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
+      {promptHelp && <PromptHelp onClose={() => setPromptHelp(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
       {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
         <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
