@@ -95,7 +95,7 @@ function Login({ onUser }) {
 }
 
 // ───────── 미리보기 ─────────
-function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true }) {
+function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null }) {
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
@@ -107,9 +107,12 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
       const cv = document.createElement('canvas'); cv.width = FW; cv.height = FH
       drawScene(cv, { ...sc, imgEl: sc.imgUrl ? images[sc.imgUrl] : null }); return cv
     })
-    if (stateRef.current.idx >= scenes.length) stateRef.current.idx = 0
-    if (!stateRef.current.playing) showStatic(stateRef.current.idx)
-  }, [scenes, images])
+    if (!stateRef.current.playing) {
+      const i = (focus != null ? focus : stateRef.current.idx)
+      stateRef.current.idx = Math.max(0, Math.min(i, scenes.length - 1))
+      showStatic(stateRef.current.idx)
+    }
+  }, [scenes, images, focus])
 
   const showStatic = (i) => {
     const cv = canvasRef.current, off = offRef.current; if (!cv || !off.length) return
@@ -298,6 +301,36 @@ function Collapse({ title, children, defaultOpen = false }) {
   )
 }
 
+function SceneList({ cuts, sel, onSelect, onAdd, onMove, strip }) {
+  return (
+    <div className={'scenes' + (strip ? ' strip' : '')}>
+      {!strip && <div className="scenes-head">장면 {cuts.length}개</div>}
+      <div className="scenes-list">
+        {cuts.map((c, i) => {
+          const line = (c.text || '').split('\n')[0].trim()
+          return (
+            <div key={i} className={'scene-card' + (i === sel ? ' on' : '')} onClick={() => onSelect(i)} role="button">
+              <div className="scene-thumb">
+                {c.image_url ? <img src={c.image_url} alt="" /> : <span>{i + 1}</span>}
+                {strip && <span className="scene-badge">{i + 1}</span>}
+              </div>
+              {!strip && <div className="scene-info">
+                <div className="scene-num">장면 {i + 1}</div>
+                <div className="scene-line">{line || '(자막 없음)'}</div>
+              </div>}
+              {!strip && <div className="scene-ops">
+                <span className="iconbtn" onClick={e => { e.stopPropagation(); onMove(i, -1) }}>↑</span>
+                <span className="iconbtn" onClick={e => { e.stopPropagation(); onMove(i, 1) }}>↓</span>
+              </div>}
+            </div>
+          )
+        })}
+        <div className="scene-add" onClick={onAdd} role="button">＋ 장면</div>
+      </div>
+    </div>
+  )
+}
+
 // ───────── 메인 ─────────
 export default function App() {
   const [user, setUser] = useState(null)
@@ -314,6 +347,9 @@ export default function App() {
   const [videos, setVideos] = useState([])
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
+  const [sel, setSel] = useState(0)
+  const [propTab, setPropTab] = useState('scene')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
 
@@ -355,10 +391,16 @@ export default function App() {
   }
   const resetKey = async () => { try { await api.delKey(); setUser(u => ({ ...u, has_key: false })) } catch (e) { alert(e.message) } }
 
-  // 컷
-  const addCut = () => setProject(p => ({ ...p, cuts: [...p.cuts, emptyCut()] }))
+  // 컷(장면)
+  useEffect(() => { if (sel >= project.cuts.length) setSel(Math.max(0, project.cuts.length - 1)) }, [project.cuts.length])
+  const addCut = () => { setSel(project.cuts.length); setProject(p => ({ ...p, cuts: [...p.cuts, emptyCut()] })) }
   const delCut = (i) => setProject(p => ({ ...p, cuts: p.cuts.length > 1 ? p.cuts.filter((_, j) => j !== i) : p.cuts }))
-  const moveCut = (i, d) => setProject(p => { const j = i + d; if (j < 0 || j >= p.cuts.length) return p; const cuts = [...p.cuts];[cuts[i], cuts[j]] = [cuts[j], cuts[i]]; return { ...p, cuts } })
+  const moveCut = (i, d) => {
+    const j = i + d
+    if (j < 0 || j >= project.cuts.length) return
+    setProject(p => { const cuts = [...p.cuts];[cuts[i], cuts[j]] = [cuts[j], cuts[i]]; return { ...p, cuts } })
+    setSel(sv => (sv === i ? j : sv === j ? i : sv))
+  }
 
   // 폰트
   const openFont = (target) => setFontDlg({ target, init: target === 'global' ? s.font : target === 'cta' ? s.cta_font : project.cuts[target]?.font })
@@ -497,19 +539,22 @@ export default function App() {
   )
 
   return (
-    <div className="app">
-      <header className="head">
-        <span className="logo">DSM</span><span className="logo-sub">DoryShortsMaker</span>
-        <span className="tagline">사진 + 자막 → 숏츠 한 방에</span>
+    <div className="app studio">
+      <header className="topbar">
+        <span className="logo">DSM</span><span className="logo-sub">Studio</span>
+        <input className="proj-name" value={pname} onChange={e => setPname(e.target.value)} placeholder="제목 없음" />
+        <select className="proj-pick" value={pid || ''} onChange={e => openProject(e.target.value)}>
+          <option value="">내 프로젝트…</option>
+          {projList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <button className="btn ghost sm" onClick={saveProject}>저장</button>
+        <button className="btn ghost sm" onClick={newProject}>새로</button>
         <span className="spacer" />
-        <span className="muted">{user.name || user.email}</span>
+        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') setTab('edit'); else { setTab('vids'); loadVideos() } }}>내 영상</button>
+        <span className="muted acct">{user.name || user.email}</span>
         <button className="btn ghost sm" onClick={logout}>로그아웃</button>
+        {tab !== 'vids' && <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
       </header>
-
-      <div className="tabs">
-        <button className={tab === 'edit' ? 'tab on' : 'tab'} onClick={() => setTab('edit')}>편집</button>
-        <button className={tab === 'vids' ? 'tab on' : 'tab'} onClick={() => { setTab('vids'); loadVideos() }}>내 영상</button>
-      </div>
 
       {tab === 'vids' ? (
         <div className="vids">
@@ -523,34 +568,44 @@ export default function App() {
               </div>
             </div>)}
         </div>
+      ) : isMobile ? (
+        <div className="studio-mobile">
+          <div className="m-canvas">
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} />
+          </div>
+          <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
+          <div className="m-edit">
+            {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />}
+          </div>
+          <div className="mbar">
+            <button className="btn ghost" onClick={() => setSettingsOpen(true)}>전체 설정</button>
+            <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>
+          </div>
+          {settingsOpen && <Modal title="전체 설정" onClose={() => setSettingsOpen(false)}>
+            <div className="gset">{basicSettings}{screenSettings}</div>
+          </Modal>}
+        </div>
       ) : (
-        <div className={'editor' + (isMobile ? ' mobile' : '')}>
-          {projBar}
-          {isMobile ? (
-            <>
-              <Collapse title="기본 설정">{basicSettings}</Collapse>
-              <Collapse title="화면 · 전환 · 음악">{screenSettings}</Collapse>
-              {cutListBlock}
-              <div className="mbar">
-                <button className="btn ghost" onClick={() => setPvOpen(true)}>▶ 미리보기</button>
-                <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>
-              </div>
-              {pvOpen && <Modal title="미리보기" onClose={() => setPvOpen(false)}>
-                <Preview scenes={sceneEls} images={images} settings={s} makeVideo={makeVideo} rendering={!!render} showMake={false} />
-              </Modal>}
-            </>
-          ) : (
-            <>
-              <div className="settings">
-                <fieldset className="box"><legend>기본 설정</legend>{basicSettings}</fieldset>
-                <fieldset className="box"><legend>화면 · 전환 · 음악</legend>{screenSettings}</fieldset>
-              </div>
-              <div className="work">
-                {cutListBlock}
-                <Preview scenes={sceneEls} images={images} settings={s} makeVideo={makeVideo} rendering={!!render} />
-              </div>
-            </>
-          )}
+        <div className="studio-body">
+          <aside className="panel scenes-panel">
+            <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} />
+          </aside>
+          <main className="panel canvas-panel">
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} />
+          </main>
+          <aside className="panel props-panel">
+            <div className="prop-tabs">
+              <button className={'pt' + (propTab === 'scene' ? ' on' : '')} onClick={() => setPropTab('scene')}>이 장면</button>
+              <button className={'pt' + (propTab === 'global' ? ' on' : '')} onClick={() => setPropTab('global')}>전체 설정</button>
+            </div>
+            <div className="prop-body">
+              {propTab === 'scene'
+                ? (project.cuts[sel]
+                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />
+                  : <p className="muted">장면을 선택하세요</p>)
+                : <div className="gset">{basicSettings}{screenSettings}</div>}
+            </div>
+          </aside>
         </div>
       )}
 
