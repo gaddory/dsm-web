@@ -1,0 +1,70 @@
+name: build-apk
+
+# DSM 웹앱(PWA)을 TWA(Chrome 엔진) 안드로이드 앱으로 빌드 → 서명된 APK 생성.
+# Actions 탭에서 'Run workflow'로 실행하면 끝나고 Artifacts에서 APK를 받을 수 있다.
+# 구글 로그인/파일 업로드/렌더 등 모든 기능이 정상 동작(TWA는 실제 Chrome으로 렌더링).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Prepare keystore
+        working-directory: android
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          PASS="${KEYSTORE_PASSWORD:-dsm-twa-2026}"
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "기존 keystore(secret) 사용"
+            echo "$KEYSTORE_B64" | base64 -d > android.keystore
+          else
+            echo "새 keystore 생성"
+            keytool -genkeypair -v -keystore android.keystore -alias android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PASS" -keypass "$PASS" \
+              -dname "CN=DSM, O=DoryShortsMaker, L=Seoul, C=KR"
+          fi
+          echo "PASS=$PASS" >> "$GITHUB_ENV"
+
+      - name: Build APK (Bubblewrap)
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.PASS }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ env.PASS }}
+        run: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          yes | bubblewrap build --skipPwaValidation
+
+      - name: Show signing fingerprint (assetlinks용)
+        working-directory: android
+        run: |
+          echo "===== 아래 SHA256을 HF Space 시크릿 ASSETLINKS_SHA256 에 넣으면 풀스크린(주소창 제거) ====="
+          keytool -list -v -keystore android.keystore -alias android -storepass "$PASS" | grep "SHA256:" | head -1
+          base64 -w0 android.keystore > keystore.b64
+
+      - name: Upload APK + keystore
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsm-apk
+          path: |
+            android/app-release-signed.apk
+            android/app-release-bundle.aab
+            android/keystore.b64
+          if-no-files-found: warn

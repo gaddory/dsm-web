@@ -1,0 +1,33 @@
+{
+  "packageId": "com.dory.dsm",
+  "host": "dory87-dsm.hf.space",
+  "name": "DSM — DoryShortsMaker",
+  "launcherName": "DSM",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#16191f",
+  "themeColorDark": "#0c0e13",
+  "navigationColor": "#0c0e13",
+  "navigationColorDark": "#0c0e13",
+  "navigationDividerColor": "#0c0e13",
+  "navigationDividerColorDark": "#0c0e13",
+  "backgroundColor": "#0c0e13",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://dory87-dsm.hf.space/icon-512.png",
+  "maskableIconUrl": "https://dory87-dsm.hf.space/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "fallbackType": "customtabs",
+  "webManifestUrl": "https://dory87-dsm.hf.space/manifest.webmanifest",
+  "fullScopeUrl": "https://dory87-dsm.hf.space/",
+  "minSdkVersion": 21,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "includeSourceCode": false
+}

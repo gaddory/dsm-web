@@ -49,6 +49,19 @@ def config():
     return {"google_client_id": auth.GOOGLE_CLIENT_ID}
 
 
+@app.get("/.well-known/assetlinks.json")
+def assetlinks():
+    """안드로이드 TWA 앱 검증(주소창 제거/풀스크린). 시크릿 ASSETLINKS_SHA256 설정 시 활성."""
+    fp = (os.environ.get("ASSETLINKS_SHA256", "") or "").strip()
+    if not fp:
+        return []
+    return [{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {"namespace": "android_app", "package_name": "com.dory.dsm",
+                   "sha256_cert_fingerprints": [fp]},
+    }]
+
+
 @app.get("/api/bgm-preview")
 def bgm_preview(mood: str = "auto"):
     """무드별 7초 미리듣기(합성, 캐시)."""
