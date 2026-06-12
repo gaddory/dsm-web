@@ -156,6 +156,9 @@ select { cursor: pointer; }
 .pv-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   text-align: center; color: var(--muted); font-size: 13px; }
 .pv-ctrls { display: flex; gap: 8px; }
+.pv-music { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; color: var(--fg-dim); font-size: 13px; cursor: pointer; user-select: none; }
+.pv-music input { width: 17px; height: 17px; cursor: pointer; }
+.pv-music.off { opacity: .45; cursor: default; }
 
 /* ===== Modal ===== */
 .overlay { position: fixed; inset: 0; background: rgba(6, 8, 12, .6); backdrop-filter: blur(4px);

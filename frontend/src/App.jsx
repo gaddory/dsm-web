@@ -95,11 +95,12 @@ function Login({ onUser }) {
 }
 
 // ───────── 미리보기 ─────────
-function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null }) {
+function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true, focus = null, active = true, bgmUrl = null }) {
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
   const autoRef = useRef(false)
+  const musicRef = useRef(null); const [withMusic, setWithMusic] = useState(false)
   const cfg = useRef(settings); cfg.current = settings
   const scn = useRef(scenes); scn.current = scenes
 
@@ -145,6 +146,21 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
     const t = setTimeout(() => { if (!stateRef.current.playing) play() }, 200)
     return () => clearTimeout(t)
   }, [scenes])
+  // 모달이 위에 뜨면 미리보기 애니메이션 정지(뒤 화면 깜빡임 방지) → 닫히면 재개
+  useEffect(() => {
+    if (active === false) cancelAnimationFrame(rafRef.current)
+    else if (stateRef.current.playing) { stateRef.current.start = performance.now(); rafRef.current = requestAnimationFrame(loop) }
+  }, [active])
+  // 배경음악 바뀌면 오디오 리셋
+  useEffect(() => { if (musicRef.current) { musicRef.current.pause(); musicRef.current = null } }, [bgmUrl])
+  // 배경음악 같이 듣기 (재생+체크+활성+곡 있을 때만)
+  useEffect(() => {
+    if (withMusic && playing && active !== false && bgmUrl) {
+      if (!musicRef.current) { const a = new Audio(bgmUrl); a.loop = true; musicRef.current = a }
+      musicRef.current.play().catch(() => { })
+    } else if (musicRef.current) { musicRef.current.pause() }
+  }, [withMusic, playing, active, bgmUrl])
+  useEffect(() => () => { if (musicRef.current) musicRef.current.pause() }, [])
 
   return (
     <div className="preview">
@@ -157,6 +173,10 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
         <button className="btn ghost" onClick={() => jump(-1)}>이전</button>
         <button className="btn ghost" onClick={() => jump(1)}>다음</button>
       </div>
+      <label className={'pv-music' + (bgmUrl ? '' : ' off')}>
+        <input type="checkbox" checked={withMusic} disabled={!bgmUrl} onChange={e => setWithMusic(e.target.checked)} />
+        🔊 배경음악 같이 듣기
+      </label>
       {showMake && <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>}
     </div>
   )
@@ -315,7 +335,9 @@ function MusicPicker({ current, onPick, onClose, busy }) {
     e.stopPropagation()
     if (!confirm('이 음악을 목록에서 삭제할까요?')) return
     if (playing === id) stop()
-    try { await api.delAudio(id); await load(); if (sel === id) setSel('none') } catch (err) { alert(err.message) }
+    setAudios(prev => prev.filter(x => x.id !== id))   // 즉시 제거(낙관적)
+    if (sel === id) setSel('none')
+    try { await api.delAudio(id) } catch (err) { alert(err.message); load() }
   }
   const close = () => { stop(); onClose() }
   const done = () => {
@@ -327,7 +349,7 @@ function MusicPicker({ current, onPick, onClose, busy }) {
     <Modal title="배경음악 선택" onClose={close} wide>
       <input ref={fileRef} type="file" accept="audio/*" hidden onChange={upload} />
       <div className="music-head">
-        <span className="music-sec">내 음악 <span className="muted">· 계정에 저장 (원본 지워도 사용 가능)</span></span>
+        <span className="music-sec">내 음악</span>
         <button className="btn info xs" onClick={() => fileRef.current.click()}>＋ 불러오기</button>
       </div>
       <div className="music-list">
@@ -370,16 +392,31 @@ function useIsMobile() {
   return m
 }
 
-// 모달이 열리면 히스토리에 한 칸 쌓고, 뒤로가기 → 앱을 벗어나지 않고 모달만 닫음
+// 모달이 열리면 히스토리에 한 칸 쌓고, 뒤로가기 → 가장 위 모달만 닫음(중첩 지원)
+let _mStack = []      // 열린 레이어 id 스택
+let _mSeq = 0
+let _mClosing = 0     // 프로그램적 닫기로 인한 history.back() 무시용
 function useBackClose(open, close) {
+  const closeRef = useRef(close); closeRef.current = close
   useEffect(() => {
     if (!open) return
-    window.history.pushState({ dsmModal: true }, '')
-    const onPop = () => close()
+    const id = ++_mSeq
+    _mStack.push(id)
+    window.history.pushState({ m: id }, '')
+    const onPop = () => {
+      if (_mClosing) return
+      if (_mStack[_mStack.length - 1] !== id) return   // 최상단만 반응
+      _mStack.pop(); closeRef.current()
+    }
     window.addEventListener('popstate', onPop)
     return () => {
       window.removeEventListener('popstate', onPop)
-      if (window.history.state && window.history.state.dsmModal) window.history.back()
+      const i = _mStack.lastIndexOf(id); if (i >= 0) _mStack.splice(i, 1)
+      // 버튼 등으로 닫힘 → 우리가 push한 히스토리 한 칸 정리(다른 모달은 건드리지 않음)
+      if (window.history.state && window.history.state.m === id) {
+        _mClosing++; window.history.back()
+        setTimeout(() => { _mClosing = Math.max(0, _mClosing - 1) }, 80)
+      }
     }
   }, [open])
 }
@@ -498,6 +535,10 @@ export default function App() {
   const urls = [...project.cuts.map(c => c.image_url), s.ending_url].filter(Boolean)
   const images = useImages(urls)
   const sceneEls = scenes.map(sc => ({ ...sc, dur: sc.center === 0.55 ? (s.cta_dur || 4.6) : s.scene_dur }))
+  const anyModal = settingsOpen || musicOpen || !!fontDlg || transHelp || !!aiResult || !!lightbox
+  const bgmUrl = s.bgm_mode === 'none' ? null
+    : s.bgm_mode === 'file' ? (s.bgm_file ? mediaUrl(s.bgm_file) : null)
+      : `/api/bgm-preview?mood=${s.bgm_mode}`
 
   // 키
   const inputKey = async () => {
@@ -711,7 +752,7 @@ export default function App() {
       ) : isMobile ? (
         <div className="studio-mobile">
           <div className="m-canvas">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} />
           </div>
           <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
           <div className="m-edit">
@@ -731,7 +772,7 @@ export default function App() {
             <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} />
           </aside>
           <main className="panel canvas-panel">
-            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} />
+            <Preview scenes={sceneEls} images={images} settings={s} focus={sel} rendering={!!render} showMake={false} active={!anyModal} bgmUrl={bgmUrl} />
           </main>
           <aside className="panel props-panel">
             <div className="prop-tabs">
