@@ -178,6 +178,17 @@ select { cursor: pointer; }
 .phelp ul { margin: 8px 0; padding-left: 18px; }
 .phelp li { margin: 4px 0; }
 .phelp-tip { background: rgba(91, 124, 250, .1); border: 1px solid rgba(91, 124, 250, .25); padding: 9px 11px; border-radius: 8px; margin: 8px 0; }
+
+/* 부팅 스플래시 */
+.splash { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(600px 420px at 50% 38%, rgba(91, 124, 250, .08), transparent 70%), var(--bg); }
+.splash-box { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 36px 44px; }
+.splash-logo { font-size: 42px; font-weight: 900; letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--primary), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.splash-lines { text-align: center; min-height: 46px; }
+.splash-line { color: var(--muted); font-size: 14px; margin: 4px 0; opacity: .3; transition: opacity .35s; white-space: nowrap; }
+.splash-line.on { color: var(--fg-dim); opacity: 1; }
+.splash.min { background: var(--bg); z-index: 100; }
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }

@@ -308,6 +308,30 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
+function Splash() {
+  const [dots, setDots] = useState(1)
+  const [step, setStep] = useState(0)
+  useEffect(() => {
+    const seq = [1, 2, 3, 2]; let i = 0
+    const td = setInterval(() => { i = (i + 1) % seq.length; setDots(seq[i]) }, 380)
+    const ts = setTimeout(() => setStep(1), 1100)
+    return () => { clearInterval(td); clearTimeout(ts) }
+  }, [])
+  const d = '.'.repeat(dots)
+  return (
+    <div className="splash">
+      <div className="splash-box">
+        <div className="splash-logo">DSM</div>
+        <div className="spinner" />
+        <div className="splash-lines">
+          <div className="splash-line on">DSM(DoryShortsMaker) Engine을 실행중입니다{step === 0 ? d : '...'}</div>
+          <div className={'splash-line' + (step >= 1 ? ' on' : '')}>사용자 환경을 불러오고 있습니다{step >= 1 ? d : ''}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PromptHelp({ onClose }) {
   return (
     <Modal title="프롬프트, 어떻게 쓸까?" onClose={onClose}>
@@ -490,6 +514,8 @@ function SceneList({ cuts, sel, onSelect, onAdd, onMove, strip }) {
 export default function App() {
   const [user, setUser] = useState(null)
   const [booting, setBooting] = useState(true)
+  const [splash] = useState(() => !sessionStorage.getItem('dsm_booted'))   // 이 탭에서 처음 접속할 때만 true
+  const [minDone, setMinDone] = useState(false)
   const [project, setProject] = useState(() => { try { const j = localStorage.getItem(LS_DRAFT); if (j) return JSON.parse(j) } catch { } return defaultProject() })
   const [pid, setPid] = useState(null)
   const [pname, setPname] = useState('제목 없음')
@@ -538,6 +564,13 @@ export default function App() {
       if (getToken()) { try { const u = await api.me(); setUser(u); await loadProjects() } catch { } }
       setBooting(false)
     })()
+  }, [])
+  // 스플래시는 '이 탭의 첫 접속'에만 (새로고침/뒤로가기는 같은 세션이라 생략)
+  useEffect(() => {
+    sessionStorage.setItem('dsm_booted', '1')
+    if (!splash) { setMinDone(true); return }
+    const t = setTimeout(() => setMinDone(true), 1900)
+    return () => clearTimeout(t)
   }, [])
 
   // 드래프트 자동저장(브라우저) + 서버 자동저장(저장된 프로젝트면)
@@ -643,7 +676,9 @@ export default function App() {
 
   const logout = () => { setToken(''); setUser(null); setPid(null) }
 
-  if (booting) return <div className="login"><div className="login-card"><div className="spinner" /></div></div>
+  if (booting || (splash && !minDone)) return splash
+    ? <Splash />
+    : <div className="splash min"><div className="spinner" /></div>
   if (!user) return <Login onUser={(u) => { setUser(u); loadProjects() }} />
 
   const transLabel = NAME2LABEL[s.transition] || TRANSITIONS[0][0]
