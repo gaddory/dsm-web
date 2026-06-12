@@ -363,7 +363,8 @@ input.clickable:hover { border-color: var(--primary); }
 .tb-proj .lbl { color: var(--gold); font-weight: 700; }
 .topbar .proj-name { flex: 1; max-width: 300px; font-weight: 600; }
 .topbar .proj-pick { max-width: 180px; }
-.topbar .acct { padding: 5px 11px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 999px; }
+.topbar .acct { padding: 5px 6px; font-size: 13.5px; }
+.topbar .acct b { color: var(--gold); font-weight: 800; }
 
 .studio-body { display: grid; grid-template-columns: 280px 1fr 420px; height: calc(100vh - 110px); }
 .panel { overflow-y: auto; }

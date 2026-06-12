@@ -800,7 +800,7 @@ export default function App() {
           <button className={'navtab' + (tab === 'vids' ? ' on' : '')} onClick={() => { setTab('vids'); loadVideos() }}>내 영상</button>
           <button className="btn ghost sm guide-btn" onClick={() => setGuideOpen(true)}>사용 도움말</button>
           <span className="spacer" />
-          <span className="muted acct">{user.name || user.email}</span>
+          <span className="muted acct"><b>{user.name || user.email}</b>님 오늘은 어떤 영상을 만들어 볼까요?</span>
           <button className="btn ghost sm" onClick={logout}>로그아웃</button>
           {tab !== 'vids' && <button className="btn primary sm" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
         </div>
