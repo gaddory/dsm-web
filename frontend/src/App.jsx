@@ -604,7 +604,7 @@ export default function App() {
   useEffect(() => {
     sessionStorage.setItem('dsm_booted', '1')
     if (!splash) { setMinDone(true); return }
-    const t = setTimeout(() => setMinDone(true), 1900)
+    const t = setTimeout(() => setMinDone(true), 1300)
     return () => clearTimeout(t)
   }, [])
 
