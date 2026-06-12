@@ -213,7 +213,7 @@ select { cursor: pointer; }
 .vids-bar { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 16px; padding: 12px 14px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .vids-bar .btn { flex: 0 0 auto; }
-.vids { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+.vids { display: flex; flex-wrap: wrap; gap: 16px; justify-content: flex-start; }
 .lightbox { cursor: zoom-out; }
 .lightbox-img { max-width: 92vw; max-height: 88vh; border-radius: 12px; box-shadow: var(--shadow); cursor: zoom-out; }
 input.clickable { cursor: pointer; color: var(--primary-h); }
