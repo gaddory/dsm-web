@@ -217,8 +217,27 @@ select { cursor: pointer; }
 .login-logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; position: relative; }
 .login-logo span { color: var(--gold); font-size: 16px; font-weight: 700; margin-left: 10px; }
 
+/* ===== Mobile: collapsible sections + sticky action bar ===== */
+.msec { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm); overflow: hidden; }
+.msec-head { width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer; color: var(--gold); font-weight: 800; font-size: 14px;
+  letter-spacing: .3px; text-transform: uppercase; padding: 16px; font-family: inherit; }
+.msec-arrow { color: var(--fg-dim); transition: transform .2s; }
+.msec.open .msec-arrow { transform: rotate(180deg); }
+.msec-body { padding: 0 15px 14px; }
+.msec-body .row:first-child { margin-top: 4px; }
+
+.mbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(12, 14, 19, .92); backdrop-filter: blur(14px); border-top: 1px solid var(--border); }
+.mbar .btn { flex: 1; padding: 14px; font-size: 15px; font-weight: 800; }
+.mbar .btn.ghost { flex: 0 0 38%; }
+.modal .preview { position: static; background: none; border: none; box-shadow: none; padding: 0; }
+
 /* ===== 📱 Mobile (≤700px) ===== */
 @media (max-width: 700px) {
+  .editor.mobile { gap: 14px; padding-bottom: 88px; }
   body { font-size: 15px; }
   .app { padding: 0 12px 40px; }
   .head { padding: 12px 2px; gap: 8px; }

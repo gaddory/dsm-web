@@ -95,7 +95,7 @@ function Login({ onUser }) {
 }
 
 // ───────── 미리보기 ─────────
-function Preview({ scenes, images, settings, makeVideo, rendering }) {
+function Preview({ scenes, images, settings, makeVideo, rendering, showMake = true }) {
   const canvasRef = useRef(null); const offRef = useRef([])
   const stateRef = useRef({ idx: 0, phase: 'hold', start: 0, playing: false })
   const rafRef = useRef(0); const [playing, setPlaying] = useState(false); const [, setIdx] = useState(0)
@@ -137,7 +137,6 @@ function Preview({ scenes, images, settings, makeVideo, rendering }) {
 
   return (
     <div className="preview">
-      <div className="m-title">▶ 미리보기 · 영상 만들기</div>
       <div className="pv-frame">
         <canvas ref={canvasRef} width={FW} height={FH} className="pv-canvas" />
         {!scenes.length && <div className="pv-empty">재생을 누르면<br />여기서 재생돼요</div>}
@@ -147,7 +146,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering }) {
         <button className="btn ghost" onClick={() => jump(-1)}>이전</button>
         <button className="btn ghost" onClick={() => jump(1)}>다음</button>
       </div>
-      <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>
+      {showMake && <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>}
     </div>
   )
 }
@@ -276,6 +275,29 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
+function useIsMobile() {
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 700px)')
+    const fn = e => setM(e.matches)
+    mq.addEventListener('change', fn)
+    return () => mq.removeEventListener('change', fn)
+  }, [])
+  return m
+}
+
+function Collapse({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className={'msec' + (open ? ' open' : '')}>
+      <button className="msec-head" onClick={() => setOpen(o => !o)}>
+        <span>{title}</span><span className="msec-arrow">▾</span>
+      </button>
+      {open && <div className="msec-body">{children}</div>}
+    </div>
+  )
+}
+
 // ───────── 메인 ─────────
 export default function App() {
   const [user, setUser] = useState(null)
@@ -291,6 +313,8 @@ export default function App() {
   const [render, setRender] = useState(null)
   const [videos, setVideos] = useState([])
   const [tab, setTab] = useState('edit')
+  const [pvOpen, setPvOpen] = useState(false)
+  const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
 
   const s = project.settings
@@ -399,6 +423,79 @@ export default function App() {
   const transLabel = NAME2LABEL[s.transition] || TRANSITIONS[0][0]
   const bgmLabel = BGM_NAME2LABEL[s.bgm_mode] || BGM_OPTS[1][0]
 
+  const projBar = (
+    <div className="projbar">
+      <span className="lbl">프로젝트</span>
+      <input className="grow" value={pname} onChange={e => setPname(e.target.value)} placeholder="프로젝트 이름" />
+      <button className="btn success sm" onClick={saveProject}>저장</button>
+      <button className="btn ghost sm" onClick={newProject}>새로</button>
+      <select value={pid || ''} onChange={e => openProject(e.target.value)}>
+        <option value="">내 프로젝트…</option>
+        {projList.map(p => <option key={p.id} value={p.id}>{p.name} ({p.updated})</option>)}
+      </select>
+      <button className="btn danger-o sm" disabled={!pid} onClick={deleteProject}>삭제</button>
+    </div>
+  )
+  const basicSettings = (<>
+    <div className="row">
+      <span className="lbl wide">OpenAI API 키</span>
+      <span className={'keyst ' + (user.has_key ? 'valid' : '')}>{user.has_key ? '✅ 등록됨 (인증 완료)' : '미등록'}</span>
+      <button className="btn info sm" onClick={inputKey}>{user.has_key ? '변경' : '입력'}</button>
+      {user.has_key && <button className="btn danger-o sm" onClick={resetKey}>삭제</button>}
+      <a className="link" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">API 키가 없나요?</a>
+    </div>
+    <div className="row">
+      <label className="toggle"><input type="checkbox" checked={s.use_brand} onChange={e => setS({ use_brand: e.target.checked })} /> 상단 브랜드</label>
+      <input className="grow" disabled={!s.use_brand} value={s.brand} onChange={e => setS({ brand: e.target.value })} />
+    </div>
+    <div className="row"><span className="lbl wide">컷당 길이(초)</span><input type="number" step="0.1" min="1" value={s.scene_dur} onChange={e => setS({ scene_dur: +e.target.value })} /></div>
+    <div className="row">
+      <span className="lbl wide">엔딩 이미지(선택)</span>
+      <input className="grow" readOnly value={s.ending_image ? '이미지 적용됨' : ''} placeholder="없음" />
+      <button className="btn ghost sm" onClick={() => endRef.current.click()}>찾기</button>
+      <input ref={endRef} type="file" accept="image/*" hidden onChange={pickEnding} />
+    </div>
+    <div className="row">
+      <label className="toggle"><input type="checkbox" checked={s.use_cta} onChange={e => setS({ use_cta: e.target.checked })} /> 엔딩 문구(쉼표=줄)</label>
+      <input className="grow" disabled={!s.use_cta} value={s.cta} onChange={e => setS({ cta: e.target.value })} />
+      <button className="btn ghost sm" disabled={!s.use_cta} onClick={() => openFont('cta')}>폰트{s.cta_font ? ' ✓' : ''}</button>
+    </div>
+  </>)
+  const screenSettings = (<>
+    <div className="row">
+      <span className="lbl">폰트</span>
+      <label className="radio"><input type="radio" checked={s.font_mode === 'global'} onChange={() => setS({ font_mode: 'global' })} /> 전체</label>
+      <label className="radio"><input type="radio" checked={s.font_mode === 'each'} onChange={() => setS({ font_mode: 'each' })} /> 각각</label>
+      <button className="btn ghost sm" disabled={s.font_mode !== 'global'} onClick={() => openFont('global')}>폰트 설정{s.font ? ' ✓' : ''}</button>
+    </div>
+    <div className="row"><span className="lbl">자막 위치</span>
+      <select value={posToLabel(s.sub_pos)} onChange={e => setS({ sub_pos: POS_MAP[e.target.value] })}>{POS_LABELS.map(l => <option key={l}>{l}</option>)}</select>
+    </div>
+    <div className="row"><span className="lbl">밝기</span>
+      <input type="range" min="1" max="1.8" step="0.01" value={s.brightness} onChange={e => setS({ brightness: +e.target.value })} /><span className="muted">{s.brightness.toFixed(2)}</span>
+    </div>
+    <div className="row"><span className="lbl">씬 전환</span>
+      <select value={transLabel} onChange={e => setS({ transition: TRANS_MAP[e.target.value] })}>{TRANSITIONS.map(([l]) => <option key={l}>{l}</option>)}</select>
+      <button className="btn ghost sm" onClick={() => setTransHelp(true)}>?</button>
+    </div>
+    <div className="row"><span className="lbl">전환 길이</span><input type="number" step="0.05" min="0" value={s.trans_dur} onChange={e => setS({ trans_dur: +e.target.value })} /><span className="muted">초</span></div>
+    <div className="row"><span className="lbl">배경음악</span>
+      <select value={bgmLabel} onChange={e => setS({ bgm_mode: BGM_MAP[e.target.value] })}>{BGM_OPTS.map(([l]) => <option key={l}>{l}</option>)}</select>
+      {s.bgm_mode === 'file' && <><button className="btn ghost sm" onClick={() => audioRef.current.click()}>파일</button><input ref={audioRef} type="file" accept="audio/*" hidden onChange={pickAudio} /><span className="muted">{s.bgm_name || ''}</span></>}
+    </div>
+  </>)
+  const cutListBlock = (
+    <div className="cutlist">
+      <div className="m-title">✎ 컷 목록 · 장면 편집</div>
+      <div className="cutbar"><button className="btn success sm" onClick={addCut}>＋ 컷 추가</button></div>
+      <div className="cuts-scroll">
+        {project.cuts.map((c, i) =>
+          <CutRow key={i} idx={i} cut={c} onChange={(nc) => setCut(i, nc)} onMove={(d) => moveCut(i, d)} onDel={() => delCut(i)}
+            hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />)}
+      </div>
+    </div>
+  )
+
   return (
     <div className="app">
       <header className="head">
@@ -427,85 +524,33 @@ export default function App() {
             </div>)}
         </div>
       ) : (
-        <div className="editor">
-          <div className="projbar">
-            <span className="lbl">프로젝트</span>
-            <input className="grow" value={pname} onChange={e => setPname(e.target.value)} />
-            <button className="btn success sm" onClick={saveProject}>저장</button>
-            <button className="btn ghost sm" onClick={newProject}>새로</button>
-            <select value={pid || ''} onChange={e => openProject(e.target.value)}>
-              <option value="">내 프로젝트…</option>
-              {projList.map(p => <option key={p.id} value={p.id}>{p.name} ({p.updated})</option>)}
-            </select>
-            <button className="btn danger-o sm" disabled={!pid} onClick={deleteProject}>삭제</button>
-          </div>
-
-          <div className="settings">
-            <fieldset className="box">
-              <legend>기본 설정</legend>
-              <div className="row">
-                <span className="lbl wide">OpenAI API 키</span>
-                <span className={'keyst ' + (user.has_key ? 'valid' : '')}>{user.has_key ? '✅ 등록됨 (인증 완료)' : '미등록'}</span>
-                <button className="btn info sm" onClick={inputKey}>{user.has_key ? '변경' : '입력'}</button>
-                {user.has_key && <button className="btn danger-o sm" onClick={resetKey}>삭제</button>}
-                <a className="link" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">API 키가 없나요?</a>
+        <div className={'editor' + (isMobile ? ' mobile' : '')}>
+          {projBar}
+          {isMobile ? (
+            <>
+              <Collapse title="기본 설정">{basicSettings}</Collapse>
+              <Collapse title="화면 · 전환 · 음악">{screenSettings}</Collapse>
+              {cutListBlock}
+              <div className="mbar">
+                <button className="btn ghost" onClick={() => setPvOpen(true)}>▶ 미리보기</button>
+                <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>
               </div>
-              <div className="row">
-                <label className="toggle"><input type="checkbox" checked={s.use_brand} onChange={e => setS({ use_brand: e.target.checked })} /> 상단 브랜드</label>
-                <input className="grow" disabled={!s.use_brand} value={s.brand} onChange={e => setS({ brand: e.target.value })} />
+              {pvOpen && <Modal title="미리보기" onClose={() => setPvOpen(false)}>
+                <Preview scenes={sceneEls} images={images} settings={s} makeVideo={makeVideo} rendering={!!render} showMake={false} />
+              </Modal>}
+            </>
+          ) : (
+            <>
+              <div className="settings">
+                <fieldset className="box"><legend>기본 설정</legend>{basicSettings}</fieldset>
+                <fieldset className="box"><legend>화면 · 전환 · 음악</legend>{screenSettings}</fieldset>
               </div>
-              <div className="row"><span className="lbl wide">컷당 길이(초)</span><input type="number" step="0.1" min="1" value={s.scene_dur} onChange={e => setS({ scene_dur: +e.target.value })} /></div>
-              <div className="row">
-                <span className="lbl wide">엔딩 이미지(선택)</span>
-                <input className="grow" readOnly value={s.ending_image ? '이미지 적용됨' : ''} placeholder="없음" />
-                <button className="btn ghost sm" onClick={() => endRef.current.click()}>찾기</button>
-                <input ref={endRef} type="file" accept="image/*" hidden onChange={pickEnding} />
+              <div className="work">
+                {cutListBlock}
+                <Preview scenes={sceneEls} images={images} settings={s} makeVideo={makeVideo} rendering={!!render} />
               </div>
-              <div className="row">
-                <label className="toggle"><input type="checkbox" checked={s.use_cta} onChange={e => setS({ use_cta: e.target.checked })} /> 엔딩 문구(쉼표=줄)</label>
-                <input className="grow" disabled={!s.use_cta} value={s.cta} onChange={e => setS({ cta: e.target.value })} />
-                <button className="btn ghost sm" disabled={!s.use_cta} onClick={() => openFont('cta')}>폰트{s.cta_font ? ' ✓' : ''}</button>
-              </div>
-            </fieldset>
-
-            <fieldset className="box">
-              <legend>화면 · 전환 · 음악</legend>
-              <div className="row">
-                <span className="lbl">폰트</span>
-                <label className="radio"><input type="radio" checked={s.font_mode === 'global'} onChange={() => setS({ font_mode: 'global' })} /> 전체</label>
-                <label className="radio"><input type="radio" checked={s.font_mode === 'each'} onChange={() => setS({ font_mode: 'each' })} /> 각각</label>
-                <button className="btn ghost sm" disabled={s.font_mode !== 'global'} onClick={() => openFont('global')}>폰트 설정{s.font ? ' ✓' : ''}</button>
-              </div>
-              <div className="row"><span className="lbl">자막 위치</span>
-                <select value={posToLabel(s.sub_pos)} onChange={e => setS({ sub_pos: POS_MAP[e.target.value] })}>{POS_LABELS.map(l => <option key={l}>{l}</option>)}</select>
-              </div>
-              <div className="row"><span className="lbl">밝기</span>
-                <input type="range" min="1" max="1.8" step="0.01" value={s.brightness} onChange={e => setS({ brightness: +e.target.value })} /><span className="muted">{s.brightness.toFixed(2)}</span>
-              </div>
-              <div className="row"><span className="lbl">씬 전환</span>
-                <select value={transLabel} onChange={e => setS({ transition: TRANS_MAP[e.target.value] })}>{TRANSITIONS.map(([l]) => <option key={l}>{l}</option>)}</select>
-                <button className="btn ghost sm" onClick={() => setTransHelp(true)}>?</button>
-              </div>
-              <div className="row"><span className="lbl">전환 길이</span><input type="number" step="0.05" min="0" value={s.trans_dur} onChange={e => setS({ trans_dur: +e.target.value })} /><span className="muted">초</span></div>
-              <div className="row"><span className="lbl">배경음악</span>
-                <select value={bgmLabel} onChange={e => setS({ bgm_mode: BGM_MAP[e.target.value] })}>{BGM_OPTS.map(([l]) => <option key={l}>{l}</option>)}</select>
-                {s.bgm_mode === 'file' && <><button className="btn ghost sm" onClick={() => audioRef.current.click()}>파일</button><input ref={audioRef} type="file" accept="audio/*" hidden onChange={pickAudio} /><span className="muted">{s.bgm_name || ''}</span></>}
-              </div>
-            </fieldset>
-          </div>
-
-          <div className="work">
-            <div className="cutlist">
-              <div className="m-title">✎ 컷 목록 · 장면 편집</div>
-              <div className="cutbar"><button className="btn success sm" onClick={addCut}>＋ 컷 추가</button></div>
-              <div className="cuts-scroll">
-                {project.cuts.map((c, i) =>
-                  <CutRow key={i} idx={i} cut={c} onChange={(nc) => setCut(i, nc)} onMove={(d) => moveCut(i, d)} onDel={() => delCut(i)}
-                    hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />)}
-              </div>
-            </div>
-            <Preview scenes={sceneEls} images={images} settings={s} makeVideo={makeVideo} rendering={!!render} />
-          </div>
+            </>
+          )}
         </div>
       )}
 
