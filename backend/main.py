@@ -357,7 +357,7 @@ th:hover{color:#cfd6e6}.muted{color:#8b93a7;font-size:13px}.link{color:#7d97ff;f
 <button class="ghost" onclick="logout()">로그아웃</button></span></div></div>
 <div class="card">
 <div class="row" style="margin-bottom:12px"><b>사용자 <span id="cnt" class="muted"></span></b>
-<input id="q" placeholder="이름 · 아이디 검색" oninput="render()" style="width:200px;margin-left:8px">
+<input id="q" placeholder="이름 · 아이디 검색" oninput="render()" autocomplete="off" style="width:200px;margin-left:8px">
 <span class="link" onclick="clearFilter()" style="margin-left:auto">필터 해제</span></div>
 <table><thead><tr>
 <th onclick="sortBy('name')">이름 / 이메일<span id="s-name" class="th-s"></span></th>
@@ -389,7 +389,7 @@ function render(){
  cnt.textContent='('+L.length+'명)';
  rows.innerHTML=L.map(function(x){return '<tr><td><div>'+(x.name||'')+'</div><div class="muted">'+(x.email||'')+'</div></td><td>'+x.videos+'</td><td class="muted">'+x.created+'</td><td><label class="sw"><input type="checkbox" '+(x.watermark?'checked':'')+' onchange="wm('+x.id+',this.checked)"><span class="sl"></span></label></td></tr>';}).join('');
  ['name','videos','created','watermark'].forEach(function(k){document.getElementById('s-'+k).textContent=(sortKey===k)?(sortAsc?' ▲':' ▼'):'';});}
-function show(){document.getElementById('loginView').style.display='none';panel.style.display='';load();}
+function show(){document.getElementById('loginView').style.display='none';panel.style.display='';q.value='';load();}
 if(T())show();
 </script></body></html>"""
 
