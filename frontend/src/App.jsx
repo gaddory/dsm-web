@@ -175,7 +175,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
       </div>
       <label className={'pv-music' + (bgmUrl ? '' : ' off')}>
         <input type="checkbox" checked={withMusic} disabled={!bgmUrl} onChange={e => setWithMusic(e.target.checked)} />
-        🔊 배경음악 같이 듣기
+        배경음악 같이 듣기
       </label>
       {showMake && <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>}
     </div>
@@ -312,13 +312,13 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
 
 function Guide({ onClose }) {
   const steps = [
-    { icon: '👋', title: '환영해요!', desc: 'DSM은 자막과 이미지로 세로 숏츠 영상을 만드는 도구예요. 7단계로 차근차근 알려줄게요.' },
-    { icon: '✍️', title: '1. 장면에 자막 쓰기', desc: '왼쪽에서 장면을 고르고, 오른쪽 [이 장면]에서 자막을 입력해요. “＋ 장면”으로 추가하고 ↑↓로 순서를 바꿔요.' },
-    { icon: '🖼️', title: '2. 이미지 넣기', desc: '[찾기]로 내 사진을 넣거나, 프롬프트를 적고 [AI이미지 생성]으로 만들 수 있어요. 프롬프트 옆 “?” 를 누르면 작성법이 나와요.' },
-    { icon: '▶️', title: '3. 미리보기', desc: '가운데 화면에서 바로 재생돼요. “🔊 배경음악 같이 듣기”를 켜면 음악까지 들으면서 확인할 수 있어요.' },
-    { icon: '⚙️', title: '4. 전체 설정', desc: '폰트, 자막 위치, 화면 전환, 배경음악, 엔딩 문구까지 [전체 설정]에서 한 번에 조절해요.' },
-    { icon: '🎬', title: '5. 영상 만들기', desc: '오른쪽 위 [영상 만들기]를 누르면 완성! 잠시 뒤 [내 영상]에서 다운로드하고 관리할 수 있어요.' },
-    { icon: '💾', title: '저장은 자동이에요', desc: '작업은 자동 저장돼요. 프로젝트 이름을 짓고 [저장]을 누르면 계정에 안전하게 보관돼요. 이제 시작해볼까요?' },
+    { title: '환영해요', desc: 'DSM은 자막과 이미지로 세로 숏츠 영상을 만드는 도구예요. 차근차근 알려드릴게요.' },
+    { title: '장면에 자막 쓰기', desc: '왼쪽에서 장면을 고르고, 오른쪽 [이 장면]에서 자막을 입력해요. ＋장면으로 추가하고 ↑↓로 순서를 바꿔요.' },
+    { title: '이미지 넣기', desc: '[찾기]로 내 사진을 넣거나, 프롬프트를 적고 [AI이미지 생성]으로 만들 수 있어요. 프롬프트 옆 ? 를 누르면 작성법이 나와요.' },
+    { title: '미리보기', desc: '가운데 화면에서 바로 재생돼요. “배경음악 같이 듣기”를 켜면 음악까지 들으면서 확인할 수 있어요.' },
+    { title: '전체 설정', desc: '폰트, 자막 위치, 화면 전환, 배경음악, 엔딩 문구까지 [전체 설정]에서 한 번에 조절해요.' },
+    { title: '영상 만들기', desc: '오른쪽 위 [영상 만들기]를 누르면 완성! 잠시 뒤 [내 영상]에서 다운로드하고 관리할 수 있어요.' },
+    { title: '저장은 자동', desc: '작업은 자동 저장돼요. 프로젝트 이름을 짓고 [저장]을 누르면 계정에 보관돼요. 이제 시작해볼까요?' },
   ]
   const [i, setI] = useState(0)
   const last = i === steps.length - 1
@@ -326,7 +326,7 @@ function Guide({ onClose }) {
   return (
     <Modal title="사용 도움말" onClose={onClose}>
       <div className="guide">
-        <div className="guide-icon" key={i}>{st.icon}</div>
+        <div className="guide-num" key={i}>{i + 1}</div>
         <div className="guide-title" key={'t' + i}>{st.title}</div>
         <div className="guide-desc" key={'d' + i}>{st.desc}</div>
         <div className="guide-dots">{steps.map((_, k) => <span key={k} className={'gdot' + (k === i ? ' on' : '')} onClick={() => setI(k)} />)}</div>
@@ -334,7 +334,7 @@ function Guide({ onClose }) {
       <div className="modal-btns">
         <button className="btn ghost" disabled={i === 0} onClick={() => setI(i - 1)}>이전</button>
         {last
-          ? <button className="btn primary" onClick={onClose}>시작하기 🚀</button>
+          ? <button className="btn primary" onClick={onClose}>시작하기</button>
           : <button className="btn primary" onClick={() => setI(i + 1)}>다음</button>}
       </div>
     </Modal>
@@ -376,7 +376,7 @@ function PromptHelp({ onClose }) {
           <li><b>분위기</b> — 따뜻한, 쓸쓸한, 설레는, 차분한…</li>
           <li><b>느낌</b> — 영화 한 장면처럼, 수채화풍, 빛바랜 사진…</li>
         </ul>
-        <p className="phelp-tip">💡 <b>AI 티 덜 나게</b> — “실제 사진처럼, 자연광, 필름 감성, 살짝 흐릿하게” 같은 말을 붙이면 훨씬 자연스러워요. 너무 매끈·완벽하면 오히려 AI 같아 보이거든요.</p>
+        <p className="phelp-tip"><b>AI 티 덜 나게</b> — “실제 사진처럼, 자연광, 필름 감성, 살짝 흐릿하게” 같은 말을 붙이면 훨씬 자연스러워요. 너무 매끈·완벽하면 오히려 AI 같아 보이거든요.</p>
         <p className="phelp-tip">자막을 먼저 쓰고 <b>추천</b>을 누르면 알아서 만들어주기도 해요.</p>
       </div>
       <div className="modal-btns"><button className="btn primary" onClick={onClose}>알겠어요</button></div>
@@ -735,7 +735,7 @@ export default function App() {
   const basicSettings = (<>
     <div className="row">
       <span className="lbl wide">OpenAI API 키</span>
-      <span className={'keyst ' + (user.has_key ? 'valid' : '')}>{user.has_key ? '✅ 등록됨 (인증 완료)' : '미등록'}</span>
+      <span className={'keyst ' + (user.has_key ? 'valid' : '')}>{user.has_key ? '등록됨 (인증 완료)' : '미등록'}</span>
       <button className="btn info sm" onClick={inputKey}>{user.has_key ? '변경' : '입력'}</button>
       {user.has_key && <button className="btn danger-o sm" onClick={resetKey}>삭제</button>}
       <a className="link" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">API 키가 없나요?</a>
@@ -776,7 +776,7 @@ export default function App() {
     </div>
     <div className="row"><span className="lbl">전환 길이</span><input type="number" step="0.05" min="0" value={s.trans_dur} onChange={e => setS({ trans_dur: +e.target.value })} /><span className="muted">초</span></div>
     <div className="row"><span className="lbl">배경음악</span>
-      <button className="btn ghost sm" onClick={() => setMusicOpen(true)}>♪ {s.bgm_mode === 'file' ? (s.bgm_name || '내 음악') : (BGM_NAME2LABEL[s.bgm_mode] || '선택')}</button>
+      <button className="btn ghost sm" onClick={() => setMusicOpen(true)}>{s.bgm_mode === 'file' ? (s.bgm_name || '내 음악') : (BGM_NAME2LABEL[s.bgm_mode] || '선택')}</button>
     </div>
   </>)
   const cutListBlock = (
@@ -798,7 +798,7 @@ export default function App() {
           <span className="logo" role="button" onClick={() => setTab('edit')}>DSM</span>
           <button className={'navtab' + (tab === 'edit' ? ' on' : '')} onClick={() => setTab('edit')}>메인</button>
           <button className={'navtab' + (tab === 'vids' ? ' on' : '')} onClick={() => { setTab('vids'); loadVideos() }}>내 영상</button>
-          <button className="btn ghost sm guide-btn" onClick={() => setGuideOpen(true)}>📖 사용 도움말</button>
+          <button className="btn ghost sm guide-btn" onClick={() => setGuideOpen(true)}>사용 도움말</button>
           <span className="spacer" />
           <span className="muted acct">{user.name || user.email}</span>
           <button className="btn ghost sm" onClick={logout}>로그아웃</button>
