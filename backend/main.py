@@ -3,7 +3,7 @@
 미디어(이미지/오디오/영상)는 DB에 저장(유저별), /api/media/{id}?token= 으로 서빙."""
 import os, uuid, base64, shutil, threading, json
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -47,6 +47,16 @@ def health():
 @app.get("/api/config")
 def config():
     return {"google_client_id": auth.GOOGLE_CLIENT_ID}
+
+
+@app.get("/api/bgm-preview")
+def bgm_preview(mood: str = "auto"):
+    """무드별 7초 미리듣기(합성, 캐시)."""
+    m = mood if mood in engine._MOODS else "auto"
+    path = os.path.join(WORK, f"prev_{m}.wav")
+    if not os.path.exists(path):
+        engine.build_bgm(path, 7.0, mood=m)
+    return FileResponse(path, media_type="audio/wav")
 
 
 @app.post("/api/auth/google")

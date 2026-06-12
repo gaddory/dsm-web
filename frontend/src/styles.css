@@ -181,6 +181,15 @@ select { cursor: pointer; }
 .ai-thumb:hover { border-color: var(--primary); transform: translateY(-2px); }
 .ai-thumb.on { border-color: var(--success); box-shadow: 0 0 0 2px rgba(41, 192, 129, .35); }
 
+/* music picker */
+.music-list { display: flex; flex-direction: column; gap: 6px; max-height: 56vh; overflow-y: auto; padding-right: 2px; }
+.music-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; transition: .12s; }
+.music-row:hover { border-color: #3a4456; }
+.music-row.on { border-color: var(--primary); background: var(--primary-soft); }
+.music-name { flex: 1; font-weight: 600; }
+.music-check { color: var(--success); font-weight: 800; }
+
 /* transition help */
 .thelp { display: flex; gap: 14px; }
 .thelp-list { width: 190px; max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }

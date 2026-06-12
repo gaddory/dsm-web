@@ -288,6 +288,42 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
+function MusicPicker({ current, bgmName, onPick, onPickFile, onClose }) {
+  const [sel, setSel] = useState(current)
+  const [playing, setPlaying] = useState(null)
+  const audioRef = useRef(null)
+  const stop = () => { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null } setPlaying(null) }
+  const play = (mood, e) => {
+    e.stopPropagation()
+    if (playing === mood) { stop(); return }
+    stop()
+    const a = new Audio(`/api/bgm-preview?mood=${mood}`); a.loop = true
+    audioRef.current = a; a.play().catch(() => { }); setPlaying(mood)
+  }
+  useEffect(() => () => { if (audioRef.current) audioRef.current.pause() }, [])
+  const close = () => { stop(); onClose() }
+  const done = () => { stop(); sel === 'file' ? onPickFile() : onPick(sel) }
+  return (
+    <Modal title="배경음악 선택" onClose={close} wide>
+      <p className="muted" style={{ margin: '0 0 10px' }}>곡을 고르고 ▶로 들어본 뒤 완료를 눌러요 (무료 합성음악)</p>
+      <div className="music-list">
+        {BGM_OPTS.map(([label, val]) => (
+          <div key={val} className={'music-row' + (sel === val ? ' on' : '')} onClick={() => setSel(val)}>
+            <span className="music-name">{label}{val === 'file' && bgmName ? ` · ${bgmName}` : ''}</span>
+            {val !== 'none' && val !== 'file' &&
+              <button className="btn ghost xs" onClick={(e) => play(val, e)}>{playing === val ? '■ 정지' : '▶ 듣기'}</button>}
+            {sel === val && <span className="music-check">✓</span>}
+          </div>
+        ))}
+      </div>
+      <div className="modal-btns">
+        <button className="btn success" onClick={done}>완료</button>
+        <button className="btn ghost" onClick={close}>닫기</button>
+      </div>
+    </Modal>
+  )
+}
+
 function useIsMobile() {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches)
   useEffect(() => {
@@ -372,6 +408,7 @@ export default function App() {
   const [vidsLoading, setVidsLoading] = useState(false)
   const [selVids, setSelVids] = useState(() => new Set())
   const [lightbox, setLightbox] = useState(null)
+  const [musicOpen, setMusicOpen] = useState(false)
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -386,6 +423,7 @@ export default function App() {
   useBackClose(transHelp, () => setTransHelp(false))
   useBackClose(tab === 'vids', () => setTab('edit'))      // 내영상 → 뒤로가기 → 메인(편집)
   useBackClose(!!lightbox, () => setLightbox(null))
+  useBackClose(musicOpen, () => setMusicOpen(false))
   useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
     const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -452,7 +490,7 @@ export default function App() {
 
   // 엔딩/오디오
   const pickEnding = async (e) => { const f = e.target.files[0]; if (!f) return; try { const r = await api.upload(f); setS({ ending_image: r.id, ending_url: mediaUrl(r.id) }) } catch (err) { alert(err.message) } finally { e.target.value = '' } }
-  const pickAudio = async (e) => { const f = e.target.files[0]; if (!f) return; setBusyMsg('음악 업로드 중…'); try { const r = await api.uploadAudio(f); setS({ bgm_file: r.id, bgm_name: f.name }) } catch (err) { alert(err.message) } finally { setBusyMsg(null); e.target.value = '' } }
+  const pickAudio = async (e) => { const f = e.target.files[0]; if (!f) return; setBusyMsg('음악 업로드 중…'); try { const r = await api.uploadAudio(f); setS({ bgm_mode: 'file', bgm_file: r.id, bgm_name: f.name }) } catch (err) { alert(err.message) } finally { setBusyMsg(null); e.target.value = '' } }
 
   // AI 결과 (생성 이미지 히스토리 누적 → 썸네일에서 골라 선택)
   const onAiResult = (idx, data, cut) => setAiResult({ idx, cut, images: [data], sel: 0 })
@@ -567,8 +605,8 @@ export default function App() {
     </div>
     <div className="row"><span className="lbl">전환 길이</span><input type="number" step="0.05" min="0" value={s.trans_dur} onChange={e => setS({ trans_dur: +e.target.value })} /><span className="muted">초</span></div>
     <div className="row"><span className="lbl">배경음악</span>
-      <select value={bgmLabel} onChange={e => setS({ bgm_mode: BGM_MAP[e.target.value] })}>{BGM_OPTS.map(([l]) => <option key={l}>{l}</option>)}</select>
-      {s.bgm_mode === 'file' && <><button className="btn ghost sm" onClick={() => audioRef.current.click()}>파일</button><input ref={audioRef} type="file" accept="audio/*" hidden onChange={pickAudio} /><span className="muted">{s.bgm_name || ''}</span></>}
+      <button className="btn ghost sm" onClick={() => setMusicOpen(true)}>♪ {BGM_NAME2LABEL[s.bgm_mode] || '선택'}{s.bgm_mode === 'file' && s.bgm_name ? ` · ${s.bgm_name}` : ''}</button>
+      <input ref={audioRef} type="file" accept="audio/*" hidden onChange={pickAudio} />
     </div>
   </>)
   const cutListBlock = (
@@ -687,6 +725,10 @@ export default function App() {
       {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
         <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
       </div>}
+      {musicOpen && <MusicPicker current={s.bgm_mode} bgmName={s.bgm_name}
+        onPick={(m) => { setS({ bgm_mode: m }); setMusicOpen(false) }}
+        onPickFile={() => { setMusicOpen(false); setTimeout(() => audioRef.current && audioRef.current.click(), 50) }}
+        onClose={() => setMusicOpen(false)} />}
     </div>
   )
 }

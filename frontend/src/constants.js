@@ -23,9 +23,22 @@ export const NAME2LABEL = Object.fromEntries(TRANSITIONS.map(([l, v]) => [v, l])
 // 배경음악
 export const BGM_OPTS = [
   ['없음', 'none'],
-  ['감성 피아노 (기본)', 'auto'],
+  ['감성 피아노', 'auto'],
   ['잔잔한 물결', 'calm'],
   ['따뜻한 햇살', 'bright'],
+  ['밤하늘', 'night'],
+  ['설렘', 'flutter'],
+  ['빗속', 'rain'],
+  ['산책', 'walk'],
+  ['추억', 'memory'],
+  ['새벽', 'dawn'],
+  ['두근두근', 'heart'],
+  ['그리움', 'longing'],
+  ['평온', 'peace'],
+  ['카페', 'cafe'],
+  ['동화', 'fairy'],
+  ['여운', 'reflect'],
+  ['첫눈', 'snow'],
   ['내 음악 파일…', 'file'],
 ]
 export const BGM_MAP = Object.fromEntries(BGM_OPTS)
