@@ -164,9 +164,6 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
 
   return (
     <div className="preview">
-      {watermark && onInquiry && <div className="pv-top">
-        <button className="btn ghost xs" onClick={onInquiry}>워터마크 제거 및 사용문의</button>
-      </div>}
       <div className="pv-frame">
         <canvas ref={canvasRef} width={FW} height={FH} className="pv-canvas" />
         {!scenes.length && <div className="pv-empty">재생을 누르면<br />여기서 재생돼요</div>}
@@ -180,6 +177,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
         <input type="checkbox" checked={withMusic} disabled={!bgmUrl} onChange={e => setWithMusic(e.target.checked)} />
         배경음악 같이 듣기
       </label>
+      {watermark && onInquiry && <button className="wm-inquiry" onClick={onInquiry}>워터마크 제거 및 사용문의</button>}
       {showMake && <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>}
     </div>
   )
