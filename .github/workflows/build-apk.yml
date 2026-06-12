@@ -42,7 +42,7 @@ jobs:
           fi
           echo "PASS=$PASS" >> "$GITHUB_ENV"
 
-      - name: Build APK (Bubblewrap)
+      - name: Generate Android project (Bubblewrap, non-interactive)
         working-directory: android
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.PASS }}
@@ -50,21 +50,37 @@ jobs:
         run: |
           mkdir -p ~/.bubblewrap
           echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
-          yes | bubblewrap build --skipPwaValidation
+          # "프로젝트 생성?" 프롬프트에 yes → 안드로이드 소스 생성(내부 gradle 실패해도 무방)
+          yes | bubblewrap build --skipPwaValidation || true
+          echo "--- 생성된 파일 ---"; ls -la
 
-      - name: Show signing fingerprint (assetlinks용)
+      - name: Build & sign with Gradle
         working-directory: android
         run: |
-          echo "===== 아래 SHA256을 HF Space 시크릿 ASSETLINKS_SHA256 에 넣으면 풀스크린(주소창 제거) ====="
+          if [ ! -f gradlew ]; then echo "gradlew 없음 — 프로젝트 생성 실패"; exit 1; fi
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace \
+            -Pandroid.injected.signing.store.file="$PWD/android.keystore" \
+            -Pandroid.injected.signing.store.password="$PASS" \
+            -Pandroid.injected.signing.key.alias=android \
+            -Pandroid.injected.signing.key.password="$PASS"
+          echo "--- APK 찾기 ---"
+          find . -name "*.apk" -path "*release*"
+
+      - name: Collect outputs
+        working-directory: android
+        run: |
+          mkdir -p out
+          find . -name "*-release*.apk" -exec cp {} out/dsm.apk \; || true
+          [ -f app-release-signed.apk ] && cp app-release-signed.apk out/dsm.apk || true
+          base64 -w0 android.keystore > out/keystore.b64
+          echo "===== assetlinks용 SHA256 (HF 시크릿 ASSETLINKS_SHA256) ====="
           keytool -list -v -keystore android.keystore -alias android -storepass "$PASS" | grep "SHA256:" | head -1
-          base64 -w0 android.keystore > keystore.b64
+          ls -la out
 
       - name: Upload APK + keystore
         uses: actions/upload-artifact@v4
         with:
           name: dsm-apk
-          path: |
-            android/app-release-signed.apk
-            android/app-release-bundle.aab
-            android/keystore.b64
+          path: android/out/*
           if-no-files-found: warn
