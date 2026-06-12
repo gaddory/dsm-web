@@ -387,7 +387,7 @@ export default function App() {
     window.addEventListener('popstate', onPop)
     window.addEventListener('beforeunload', onBefore)
     return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('beforeunload', onBefore) }
-  }, [user])
+  }, [!!user])
 
   const s = project.settings
   const setS = (patch) => setProject(p => ({ ...p, settings: { ...p.settings, ...patch } }))
@@ -494,7 +494,12 @@ export default function App() {
   }
 
   const logout = () => { setToken(''); setUser(null); setPid(null) }
-  const leave = () => { setExitConfirm(false); leavingRef.current = true; window.history.go(-2); setTimeout(() => { leavingRef.current = false }, 1000) }
+  const leave = () => {
+    setExitConfirm(false); leavingRef.current = true
+    window.history.go(-2)
+    // 못 빠져나갔으면(이전 사이트 없음) 가드 복구 — 트랩이 영구히 깨지지 않게
+    setTimeout(() => { leavingRef.current = false; window.history.pushState({ g: 1 }, '') }, 700)
+  }
 
   if (booting) return <div className="login"><div className="login-card"><div className="spinner" /></div></div>
   if (!user) return <Login onUser={(u) => { setUser(u); loadProjects() }} />
