@@ -328,19 +328,25 @@ input{background:#0e1117;border:1px solid #2a3142;color:#fff;border-radius:8px;p
 button{background:#5b7cfa;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}
 button.ghost{background:#222838}table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}.muted{color:#8b93a7;font-size:13px}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.err{color:#ff6b6b;font-size:13px;margin-top:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.err{color:#ff6b6b;font-size:13px;min-height:18px;margin:6px 0}
 .sw{position:relative;width:46px;height:26px;display:inline-block}.sw input{display:none}
 .sl{position:absolute;inset:0;background:#3a4256;border-radius:99px;cursor:pointer;transition:.2s}
 .sl:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .sw input:checked+.sl{background:#29c081}.sw input:checked+.sl:before{transform:translateX(20px)}
-</style></head><body><div class="wrap"><h1>DSM 관리자</h1>
-<div id="loginCard" class="card"><div class="row">
-<input id="u" placeholder="아이디" value="admin" style="width:120px">
-<input id="p" type="password" placeholder="비밀번호" style="width:160px">
-<button onclick="login()">로그인</button></div>
+.login-view{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{width:330px;max-width:100%;background:#161a22;border:1px solid #232838;border-radius:18px;padding:30px 26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.login-logo{text-align:center;font-size:23px;font-weight:800;background:linear-gradient(135deg,#5b7cfa,#e3bd82);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:24px}
+.lrow{display:flex;align-items:center;gap:12px;margin-bottom:12px}.ll{width:34px;color:#8b93a7;font-weight:700;font-size:14px}
+.lrow input{flex:1;width:100%}.login-btn{width:100%;margin-top:10px;padding:13px;font-size:15px}
+</style></head><body>
+<div id="loginView" class="login-view"><div class="login-card">
+<div class="login-logo">DSM 관리자</div>
+<div class="lrow"><span class="ll">ID :</span><input id="u" value="admin"></div>
+<div class="lrow"><span class="ll">PW :</span><input id="p" type="password" onkeydown="if(event.key==='Enter')login()"></div>
 <div id="lerr" class="err"></div>
-<div class="muted" style="margin-top:8px">기본: admin / 1111 (로그인 후 변경 가능)</div></div>
-<div id="panel" style="display:none">
+<button class="login-btn" onclick="login()">로그인</button>
+</div></div>
+<div id="panel" class="wrap" style="display:none"><h1>DSM 관리자</h1>
 <div class="card"><div class="row"><b>비밀번호 변경</b>
 <input id="np" type="password" placeholder="새 비밀번호(4자+)" style="width:170px">
 <button onclick="chpw()">변경</button>
@@ -350,7 +356,7 @@ th,td{padding:10px;border-bottom:1px solid #232838;text-align:left}.muted{color:
 <button class="ghost" onclick="logout()">로그아웃</button></span></div></div>
 <div class="card"><b>사용자 <span id="cnt" class="muted"></span></b>
 <table><thead><tr><th>이름 / 이메일</th><th>영상</th><th>가입</th><th>워터마크</th></tr></thead>
-<tbody id="rows"></tbody></table></div></div></div>
+<tbody id="rows"></tbody></table></div></div>
 <script>
 const T=()=>localStorage.getItem('dsm_adm')||'';
 const H=()=>({'Authorization':'Bearer '+T(),'Content-Type':'application/json'});
@@ -366,7 +372,7 @@ async function load(){
  const r=await fetch('/api/admin/users',{headers:H()});if(r.status===403||r.status===401){logout();return}
  const us=await r.json();cnt.textContent='('+us.length+'명)';
  rows.innerHTML=us.map(x=>'<tr><td><div>'+(x.name||'')+'</div><div class="muted">'+(x.email||'')+'</div></td><td>'+x.videos+'</td><td class="muted">'+x.created+'</td><td><label class="sw"><input type="checkbox" '+(x.watermark?'checked':'')+' onchange="wm('+x.id+',this.checked)"><span class="sl"></span></label></td></tr>').join('');}
-function show(){document.getElementById('loginCard').style.display='none';panel.style.display='';load();}
+function show(){document.getElementById('loginView').style.display='none';panel.style.display='';load();}
 if(T())show();
 </script></body></html>"""
 
