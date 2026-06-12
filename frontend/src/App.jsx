@@ -367,8 +367,9 @@ export default function App() {
   const [exitConfirm, setExitConfirm] = useState(false)
   const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
-  const exitRef = useRef({}); exitRef.current = { fontDlg: !!fontDlg, transHelp, aiResult: !!aiResult, settingsOpen, tab }
+  const exitRef = useRef({}); exitRef.current = { fontDlg: !!fontDlg, transHelp, aiResult: !!aiResult, settingsOpen }
   const leavingRef = useRef(false)
+  const tabRef = useRef('edit')
   useEffect(() => {
     if (!user) return
     window.history.pushState({ g: 1 }, '')
@@ -380,7 +381,7 @@ export default function App() {
       else if (m.transHelp) setTransHelp(false)
       else if (m.aiResult) setAiResult(null)
       else if (m.settingsOpen) setSettingsOpen(false)
-      else if (m.tab === 'vids') setTab('edit')          // 내영상 → 메인(편집)
+      else if (tabRef.current === 'vids') { tabRef.current = 'edit'; setTab('edit') }   // 내영상 → 메인(편집)
       else setExitConfirm(true)                           // 메인 → 종료 확인
     }
     const onBefore = (e) => { if (leavingRef.current) return; e.preventDefault(); e.returnValue = '' }
@@ -487,7 +488,7 @@ export default function App() {
         await new Promise(r => setTimeout(r, 1200))
         const st = await api.renderStatus(job_id)
         setRender({ progress: st.progress })
-        if (st.status === 'done') { setRender(null); await loadVideos(); setTab('vids'); window.open(mediaUrl(st.media), '_blank'); break }
+        if (st.status === 'done') { setRender(null); await loadVideos(); tabRef.current = 'vids'; setTab('vids'); window.open(mediaUrl(st.media), '_blank'); break }
         if (st.status === 'error') { setRender(null); alert('렌더 오류: ' + st.error); break }
       }
     } catch (err) { setRender(null); alert(err.message) }
@@ -592,7 +593,7 @@ export default function App() {
         <button className="btn ghost sm" onClick={saveProject}>저장</button>
         <button className="btn ghost sm" onClick={newProject}>새로</button>
         <span className="spacer" />
-        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') setTab('edit'); else { setTab('vids'); loadVideos() } }}>내 영상</button>
+        <button className={'btn sm ' + (tab === 'vids' ? 'info' : 'ghost')} onClick={() => { if (tab === 'vids') { tabRef.current = 'edit'; setTab('edit') } else { tabRef.current = 'vids'; setTab('vids'); loadVideos() } }}>내 영상</button>
         <span className="muted acct">{user.name || user.email}</span>
         <button className="btn ghost sm" onClick={logout}>로그아웃</button>
         {tab !== 'vids' && <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>}
