@@ -201,9 +201,14 @@ select { cursor: pointer; }
 /* my videos */
 .vids-page { padding: 18px; }
 .vids-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 72px 20px; color: var(--fg-dim); width: 100%; }
-.vids-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 14px;
+.vids-bar { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 16px; padding: 12px 14px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.vids { display: flex; flex-wrap: wrap; gap: 16px; }
+.vids-bar .btn { flex: 0 0 auto; }
+.vids { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+.lightbox { cursor: zoom-out; }
+.lightbox-img { max-width: 92vw; max-height: 88vh; border-radius: 12px; box-shadow: var(--shadow); cursor: zoom-out; }
+input.clickable { cursor: pointer; color: var(--primary-h); }
+input.clickable:hover { border-color: var(--primary); }
 .vid { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow-sm); transition: .15s; }
 .vid.on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .vid-check { position: absolute; top: 7px; left: 7px; z-index: 2; background: rgba(0, 0, 0, .55); border-radius: 7px; padding: 3px 4px; display: flex; }
@@ -365,6 +370,8 @@ select { cursor: pointer; }
   .tb-proj .proj-name { max-width: none; flex: 1 1 90px; }
   .tb-proj .proj-pick { max-width: none; flex: 1 1 100%; }
   .navtab { padding: 7px 14px; }
+  .vids-page { padding: 12px; }
+  .vids-bar .muted { display: none; }
   .m-edit .row { gap: 8px; }
   .m-edit .row .grow { flex: 1 1 100%; }        /* 입력 한 줄 차지 → 버튼은 아래로 */
   .m-canvas { position: sticky; top: 0; z-index: 18; }

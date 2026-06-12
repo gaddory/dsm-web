@@ -163,7 +163,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
 }
 
 // ───────── 컷 ─────────
-function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, fontMode, onCutFont }) {
+function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, fontMode, onCutFont, onImage }) {
   const [loading, setLoading] = useState(''); const fileRef = useRef(null)
   const up = (patch) => onChange({ ...cut, ...patch })
   const pickFile = async (e) => {
@@ -199,7 +199,9 @@ function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, f
       <textarea className="cut-text" rows={2} placeholder="자막 (줄바꿈 = 화면 줄바꿈)" value={cut.text} onChange={e => up({ text: e.target.value })} />
       <div className="row">
         <span className="lbl">이미지</span>
-        <input className="grow" readOnly value={cut.image ? '이미지 적용됨' : ''} placeholder="이미지 없음" />
+        <input className={'grow' + (cut.image_url ? ' clickable' : '')} readOnly
+          value={cut.image_url ? '이미지 적용됨 (클릭해서 보기)' : ''} placeholder="이미지 없음"
+          onClick={() => cut.image_url && onImage && onImage(cut.image_url)} />
         <button className="btn ghost sm" onClick={() => fileRef.current.click()}>찾기</button>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickFile} />
       </div>
@@ -369,6 +371,7 @@ export default function App() {
   const [videos, setVideos] = useState([])
   const [vidsLoading, setVidsLoading] = useState(false)
   const [selVids, setSelVids] = useState(() => new Set())
+  const [lightbox, setLightbox] = useState(null)
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -382,6 +385,7 @@ export default function App() {
   useBackClose(!!fontDlg, () => setFontDlg(null))
   useBackClose(transHelp, () => setTransHelp(false))
   useBackClose(tab === 'vids', () => setTab('edit'))      // 내영상 → 뒤로가기 → 메인(편집)
+  useBackClose(!!lightbox, () => setLightbox(null))
   useEffect(() => {                                        // 사이트 이탈·새로고침 → 브라우저 확인창
     if (!user) return
     const onBefore = (e) => { e.preventDefault(); e.returnValue = '' }
@@ -574,7 +578,7 @@ export default function App() {
       <div className="cuts-scroll">
         {project.cuts.map((c, i) =>
           <CutRow key={i} idx={i} cut={c} onChange={(nc) => setCut(i, nc)} onMove={(d) => moveCut(i, d)} onDel={() => delCut(i)}
-            hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />)}
+            hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />)}
       </div>
     </div>
   )
@@ -639,7 +643,7 @@ export default function App() {
           </div>
           <SceneList cuts={project.cuts} sel={sel} onSelect={setSel} onAdd={addCut} onMove={moveCut} strip />
           <div className="m-edit">
-            {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />}
+            {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />}
           </div>
           <div className="mbar">
             <button className="btn ghost" onClick={() => setSettingsOpen(true)}>전체 설정</button>
@@ -665,7 +669,7 @@ export default function App() {
             <div className="prop-body">
               {propTab === 'scene'
                 ? (project.cuts[sel]
-                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} />
+                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />
                   : <p className="muted">장면을 선택하세요</p>)
                 : <div className="gset">{basicSettings}{screenSettings}</div>}
             </div>
@@ -680,6 +684,9 @@ export default function App() {
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
+      {lightbox && <div className="overlay lightbox" onClick={() => setLightbox(null)}>
+        <img className="lightbox-img" src={lightbox} alt="" onClick={() => setLightbox(null)} />
+      </div>}
     </div>
   )
 }
