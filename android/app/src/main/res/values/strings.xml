@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">DSM</string>
+    <string name="launchUrl">https://dory87-dsm.hf.space/</string>
+    <string name="hostName">dory87-dsm.hf.space</string>
+    <string name="assetStatements">[{ \"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": { \"namespace\": \"web\", \"site\": \"https://dory87-dsm.hf.space\" }}]</string>
+</resources>

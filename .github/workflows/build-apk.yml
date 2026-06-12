@@ -1,8 +1,8 @@
 name: build-apk
 
-# DSM 웹앱(PWA)을 TWA(Chrome 엔진) 안드로이드 앱으로 빌드 → 서명된 APK 생성.
-# Actions 탭에서 'Run workflow'로 실행하면 끝나고 Artifacts에서 APK를 받을 수 있다.
-# 구글 로그인/파일 업로드/렌더 등 모든 기능이 정상 동작(TWA는 실제 Chrome으로 렌더링).
+# DSM 웹앱(PWA)을 TWA(Chrome 엔진) 안드로이드 앱으로 직접 빌드 → 서명된 APK.
+# Actions 탭에서 'Run workflow' → 완료 후 Artifacts(dsm-apk)에서 dsm.apk 다운로드.
+# TWA라 실제 Chrome으로 렌더 → 구글 로그인/업로드/렌더 등 모든 기능 정상.
 
 on:
   workflow_dispatch:
@@ -20,8 +20,16 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
+      - name: Install Gradle 8.7
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/g.zip
+          unzip -q /tmp/g.zip -d "$HOME"
+          echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
+
+      - name: Launcher icon
+        run: |
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+          cp frontend/public/icon-512.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
       - name: Prepare keystore
         working-directory: android
@@ -31,8 +39,7 @@ jobs:
         run: |
           PASS="${KEYSTORE_PASSWORD:-dsm-twa-2026}"
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "기존 keystore(secret) 사용"
-            echo "$KEYSTORE_B64" | base64 -d > android.keystore
+            echo "기존 keystore(secret) 사용"; echo "$KEYSTORE_B64" | base64 -d > android.keystore
           else
             echo "새 keystore 생성"
             keytool -genkeypair -v -keystore android.keystore -alias android \
@@ -42,40 +49,23 @@ jobs:
           fi
           echo "PASS=$PASS" >> "$GITHUB_ENV"
 
-      - name: Generate Android project (Bubblewrap, non-interactive)
-        working-directory: android
-        env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.PASS }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ env.PASS }}
-        run: |
-          mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
-          # "프로젝트 생성?" 프롬프트에 yes → 안드로이드 소스 생성(내부 gradle 실패해도 무방)
-          yes | bubblewrap build --skipPwaValidation || true
-          echo "--- 생성된 파일 ---"; ls -la
-
-      - name: Build & sign with Gradle
+      - name: Build signed APK
         working-directory: android
         run: |
-          if [ ! -f gradlew ]; then echo "gradlew 없음 — 프로젝트 생성 실패"; exit 1; fi
-          chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace \
+          gradle assembleRelease --no-daemon --stacktrace \
             -Pandroid.injected.signing.store.file="$PWD/android.keystore" \
             -Pandroid.injected.signing.store.password="$PASS" \
             -Pandroid.injected.signing.key.alias=android \
             -Pandroid.injected.signing.key.password="$PASS"
-          echo "--- APK 찾기 ---"
-          find . -name "*.apk" -path "*release*"
 
       - name: Collect outputs
         working-directory: android
         run: |
           mkdir -p out
-          find . -name "*-release*.apk" -exec cp {} out/dsm.apk \; || true
-          [ -f app-release-signed.apk ] && cp app-release-signed.apk out/dsm.apk || true
+          cp app/build/outputs/apk/release/app-release.apk out/dsm.apk
           base64 -w0 android.keystore > out/keystore.b64
           echo "===== assetlinks용 SHA256 (HF 시크릿 ASSETLINKS_SHA256) ====="
-          keytool -list -v -keystore android.keystore -alias android -storepass "$PASS" | grep "SHA256:" | head -1
+          keytool -list -v -keystore android.keystore -alias android -storepass "$PASS" | grep SHA256 | head -1
           ls -la out
 
       - name: Upload APK + keystore
