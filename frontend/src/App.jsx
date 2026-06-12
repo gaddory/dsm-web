@@ -367,6 +367,8 @@ export default function App() {
   const [aiResult, setAiResult] = useState(null)
   const [render, setRender] = useState(null)
   const [videos, setVideos] = useState([])
+  const [vidsLoading, setVidsLoading] = useState(false)
+  const [selVids, setSelVids] = useState(() => new Set())
   const [tab, setTab] = useState('edit')
   const [pvOpen, setPvOpen] = useState(false)
   const [sel, setSel] = useState(0)
@@ -409,7 +411,11 @@ export default function App() {
   }, [project, pname])
 
   const loadProjects = async () => { try { setProjList(await api.projects()) } catch { } }
-  const loadVideos = async () => { try { setVideos(await api.videos()) } catch { } }
+  const loadVideos = async () => { setVidsLoading(true); try { setVideos(await api.videos()) } catch { } finally { setVidsLoading(false) } }
+  const toggleVid = (id) => setSelVids(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleAllVids = () => setSelVids(s => s.size === videos.length ? new Set() : new Set(videos.map(v => v.id)))
+  const downloadSel = () => { videos.filter(v => selVids.has(v.id)).forEach((v, i) => setTimeout(() => { const a = document.createElement('a'); a.href = mediaUrl(v.id); a.download = v.id; document.body.appendChild(a); a.click(); a.remove() }, i * 400)) }
+  const deleteSel = async () => { if (!selVids.size || !confirm(`선택한 ${selVids.size}개 영상을 삭제할까요?`)) return; for (const id of Array.from(selVids)) { try { await api.delVideo(id) } catch { } } setSelVids(new Set()); loadVideos() }
 
   const scenes = buildScenes(project)
   const urls = [...project.cuts.map(c => c.image_url), s.ending_url].filter(Boolean)
@@ -598,16 +604,33 @@ export default function App() {
       </header>
 
       {tab === 'vids' ? (
-        <div className="vids">
-          {!videos.length && <p className="muted">아직 만든 영상이 없어요.</p>}
-          {videos.map(v =>
-            <div key={v.id} className="vid">
-              <video src={mediaUrl(v.id)} controls width="180" />
-              <div className="vid-meta"><div>{v.created}</div>
-                <a className="btn ghost sm" href={mediaUrl(v.id)} download>다운로드</a>
-                <button className="btn danger-o sm" onClick={async () => { await api.delVideo(v.id); loadVideos() }}>삭제</button>
+        <div className="vids-page">
+          {vidsLoading && !videos.length ? (
+            <div className="vids-loading"><div className="spinner" /><div>작업 내용을 불러오는 중입니다…</div></div>
+          ) : !videos.length ? (
+            <p className="muted" style={{ padding: '20px 4px' }}>아직 만든 영상이 없어요.</p>
+          ) : (
+            <>
+              <div className="vids-bar">
+                <label className="toggle"><input type="checkbox" checked={selVids.size === videos.length && videos.length > 0} onChange={toggleAllVids} /> 전체 선택</label>
+                <span className="muted">{selVids.size > 0 ? `${selVids.size}개 선택됨` : `총 ${videos.length}개`}</span>
+                <span className="spacer" />
+                <button className="btn ghost sm" disabled={!selVids.size} onClick={downloadSel}>선택 다운로드</button>
+                <button className="btn danger-o sm" disabled={!selVids.size} onClick={deleteSel}>선택 삭제</button>
               </div>
-            </div>)}
+              <div className="vids">
+                {videos.map(v =>
+                  <div key={v.id} className={'vid' + (selVids.has(v.id) ? ' on' : '')}>
+                    <label className="vid-check"><input type="checkbox" checked={selVids.has(v.id)} onChange={() => toggleVid(v.id)} /></label>
+                    <video src={mediaUrl(v.id)} controls width="180" />
+                    <div className="vid-meta"><div>{v.created}</div>
+                      <a className="btn ghost sm" href={mediaUrl(v.id)} download>다운로드</a>
+                      <button className="btn danger-o sm" onClick={async () => { await api.delVideo(v.id); loadVideos() }}>삭제</button>
+                    </div>
+                  </div>)}
+              </div>
+            </>
+          )}
         </div>
       ) : isMobile ? (
         <div className="studio-mobile">
