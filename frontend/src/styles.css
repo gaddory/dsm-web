@@ -163,9 +163,11 @@ select { cursor: pointer; }
 /* ===== Modal ===== */
 .overlay { position: fixed; inset: 0; background: rgba(6, 8, 12, .6); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px;
+.modal { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 20px;
   min-width: 320px; max-width: 92vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); }
 .modal.wide { width: 660px; }
+.modal-loading { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; background: rgba(12, 14, 19, .85); border-radius: inherit; color: var(--fg); font-weight: 600; }
 .modal-title { font-weight: 800; color: var(--gold); margin-bottom: 16px; font-size: 16px; }
 .modal-btns { display: flex; gap: 10px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
 .form { display: flex; flex-direction: column; gap: 12px; }

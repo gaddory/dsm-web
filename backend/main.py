@@ -2,7 +2,7 @@
 """DSM Web API v0.2 — 구글 로그인 + 유저별 저장(프로젝트/미디어) + 유저별 OpenAI 키.
 미디어(이미지/오디오/영상)는 DB에 저장(유저별), /api/media/{id}?token= 으로 서빙."""
 import os, uuid, base64, shutil, threading, json
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -171,11 +171,29 @@ async def upload_audio(file: UploadFile = File(...), uid: int = Depends(auth.cur
 
 
 @app.get("/api/media/{mid}")
-def get_media(mid: str, uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
+def get_media(mid: str, request: Request, uid: int = Depends(auth.current_uid), s: Session = Depends(get_db)):
     m = s.get(Media, mid)
     if not m or m.user_id != uid:
         raise HTTPException(404, "없음")
-    return Response(content=m.blob, media_type=m.mime or "application/octet-stream")
+    blob = m.blob or b""
+    mime = m.mime or "application/octet-stream"
+    total = len(blob)
+    rng = request.headers.get("range")
+    if rng and rng.startswith("bytes="):      # 부분요청(오디오/영상 재생에 필요)
+        try:
+            a, b = rng[6:].split("-", 1)
+            start = int(a) if a else 0
+            end = int(b) if b else total - 1
+            end = min(end, total - 1)
+            if 0 <= start <= end:
+                chunk = blob[start:end + 1]
+                return Response(content=chunk, status_code=206, media_type=mime, headers={
+                    "Content-Range": f"bytes {start}-{end}/{total}",
+                    "Accept-Ranges": "bytes", "Content-Length": str(len(chunk))})
+        except Exception:
+            pass
+    return Response(content=blob, media_type=mime,
+                    headers={"Accept-Ranges": "bytes", "Content-Length": str(total)})
 
 
 # ───────── 렌더 ─────────

@@ -308,10 +308,11 @@ function AiResult({ images, sel, setSel, cut, loading, onChoose, onOther, onClos
   )
 }
 
-function MusicPicker({ current, onPick, onClose, busy }) {
+function MusicPicker({ current, onPick, onClose }) {
   const [audios, setAudios] = useState([])
   const [sel, setSel] = useState(current)        // mood | 'none' | 업로드 음악 id
   const [playing, setPlaying] = useState(null)
+  const [uploading, setUploading] = useState(false)
   const audioRef = useRef(null)
   const fileRef = useRef(null)
   const load = () => api.audios().then(setAudios).catch(() => { })
@@ -322,14 +323,16 @@ function MusicPicker({ current, onPick, onClose, busy }) {
     e.stopPropagation()
     if (playing === key) { stop(); return }
     stop()
-    const a = new Audio(url); a.loop = true; audioRef.current = a; a.play().catch(() => { }); setPlaying(key)
+    const a = new Audio(url); a.loop = true; audioRef.current = a
+    a.play().catch(err => { alert('재생할 수 없는 형식이거나 불러오기에 실패했어요.'); setPlaying(null) })
+    setPlaying(key)
   }
   const upload = async (e) => {
     const f = e.target.files[0]; e.target.value = ''
     if (!f) return
-    busy('음악 업로드 중…')
+    setUploading(true)
     try { const r = await api.uploadAudio(f); await load(); setSel(r.id) }
-    catch (err) { alert(err.message) } finally { busy(null) }
+    catch (err) { alert(err.message) } finally { setUploading(false) }
   }
   const del = async (id, e) => {
     e.stopPropagation()
@@ -348,9 +351,10 @@ function MusicPicker({ current, onPick, onClose, busy }) {
   return (
     <Modal title="배경음악 선택" onClose={close} wide>
       <input ref={fileRef} type="file" accept="audio/*" hidden onChange={upload} />
+      {uploading && <div className="modal-loading"><div className="spinner" /><div>음악 불러오는 중…</div></div>}
       <div className="music-head">
         <span className="music-sec">내 음악</span>
-        <button className="btn info xs" onClick={() => fileRef.current.click()}>＋ 불러오기</button>
+        <button className="btn info xs" disabled={uploading} onClick={() => fileRef.current.click()}>＋ 불러오기</button>
       </div>
       <div className="music-list">
         {audios.length === 0 && <div className="music-empty">불러온 음악이 없어요. ＋불러오기로 추가하세요.</div>}
@@ -759,7 +763,7 @@ export default function App() {
             {project.cuts[sel] && <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} />}
           </div>
           <div className="mbar">
-            <button className="btn ghost" onClick={() => setSettingsOpen(true)}>전체 설정</button>
+            <button className="btn info" onClick={() => setSettingsOpen(true)}>전체 설정</button>
             <button className="btn primary" disabled={!!render} onClick={makeVideo}>{render ? '만드는 중…' : '영상 만들기'}</button>
           </div>
           {settingsOpen && <Modal title="전체 설정" onClose={() => setSettingsOpen(false)}>
@@ -802,7 +806,6 @@ export default function App() {
       </div>}
       {musicOpen && <MusicPicker current={s.bgm_mode === 'file' ? s.bgm_file : s.bgm_mode}
         onPick={(patch) => { setS(patch); setMusicOpen(false) }}
-        busy={setBusyMsg}
         onClose={() => setMusicOpen(false)} />}
     </div>
   )
