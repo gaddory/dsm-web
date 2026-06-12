@@ -364,12 +364,30 @@ export default function App() {
   const [sel, setSel] = useState(0)
   const [propTab, setPropTab] = useState('scene')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [exitConfirm, setExitConfirm] = useState(false)
   const isMobile = useIsMobile()
   const endRef = useRef(null), audioRef = useRef(null), saveTimer = useRef(0)
-  useBackClose(settingsOpen, () => setSettingsOpen(false))
-  useBackClose(!!aiResult, () => setAiResult(null))
-  useBackClose(!!fontDlg, () => setFontDlg(null))
-  useBackClose(transHelp, () => setTransHelp(false))
+  const exitRef = useRef({}); exitRef.current = { fontDlg: !!fontDlg, transHelp, aiResult: !!aiResult, settingsOpen, tab }
+  const leavingRef = useRef(false)
+  useEffect(() => {
+    if (!user) return
+    window.history.pushState({ g: 1 }, '')
+    const onPop = () => {
+      if (leavingRef.current) return
+      window.history.pushState({ g: 1 }, '')            // 뒤로가기 트랩 재장전
+      const m = exitRef.current
+      if (m.fontDlg) setFontDlg(null)
+      else if (m.transHelp) setTransHelp(false)
+      else if (m.aiResult) setAiResult(null)
+      else if (m.settingsOpen) setSettingsOpen(false)
+      else if (m.tab === 'vids') setTab('edit')          // 내영상 → 메인(편집)
+      else setExitConfirm(true)                           // 메인 → 종료 확인
+    }
+    const onBefore = (e) => { if (leavingRef.current) return; e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('popstate', onPop)
+    window.addEventListener('beforeunload', onBefore)
+    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('beforeunload', onBefore) }
+  }, [user])
 
   const s = project.settings
   const setS = (patch) => setProject(p => ({ ...p, settings: { ...p.settings, ...patch } }))
@@ -476,6 +494,7 @@ export default function App() {
   }
 
   const logout = () => { setToken(''); setUser(null); setPid(null) }
+  const leave = () => { setExitConfirm(false); leavingRef.current = true; window.history.go(-2); setTimeout(() => { leavingRef.current = false }, 1000) }
 
   if (booting) return <div className="login"><div className="login-card"><div className="spinner" /></div></div>
   if (!user) return <Login onUser={(u) => { setUser(u); loadProjects() }} />
@@ -634,6 +653,13 @@ export default function App() {
       {fontDlg && <FontDialog init={fontDlg.init} onApply={applyFont} onClose={() => setFontDlg(null)} />}
       {transHelp && <TransitionHelp current={s.transition} onClose={() => setTransHelp(false)} />}
       {aiResult && <AiResult images={aiResult.images} sel={aiResult.sel} setSel={setAiSel} loading={aiResult.loading} cut={aiResult.cut} onChoose={chooseAi} onOther={otherAi} onClose={() => setAiResult(null)} />}
+      {exitConfirm && <Modal title="작업을 종료하시겠습니까?" onClose={() => setExitConfirm(false)}>
+        <p className="muted" style={{ margin: '2px 0 8px' }}>지금까지 작업은 저장됩니다.</p>
+        <div className="modal-btns">
+          <button className="btn primary" onClick={() => setExitConfirm(false)}>아니오</button>
+          <button className="btn danger-o" onClick={leave}>네</button>
+        </div>
+      </Modal>}
     </div>
   )
 }
