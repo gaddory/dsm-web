@@ -53,7 +53,11 @@ FFMPEG = find_ffmpeg()
 
 
 def _run(args):
-    subprocess.run(args, check=True, capture_output=True, creationflags=_NOWIN)
+    p = subprocess.run(args, capture_output=True, creationflags=_NOWIN)
+    if p.returncode != 0:
+        err = (p.stderr or b"").decode("utf-8", "replace").strip()
+        tail = "\n".join(err.splitlines()[-12:]) if err else "(stderr 없음)"
+        raise RuntimeError(f"ffmpeg 실패(코드 {p.returncode}):\n{tail}")
 
 
 def fnt(sz, b=False):
@@ -389,7 +393,8 @@ def render_video(project, workdir, progress=None):
     elif mode == "file" and bfile and os.path.exists(bfile):
         log("내 음악 합치는 중…")
         _run([FFMPEG, "-y", "-i", silent, "-stream_loop", "-1", "-i", bfile,
-              "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out])
+              "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+              "-t", f"{total:.3f}", out])
     else:
         log("BGM 생성 + 합치는 중…")
         bgm = os.path.join(workdir, "_bgm.wav"); build_bgm(bgm, total, mood=mode if mode in _MOODS else "auto")
