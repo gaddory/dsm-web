@@ -60,6 +60,12 @@ def _run(args):
         raise RuntimeError(f"ffmpeg 실패(코드 {p.returncode}):\n{tail}")
 
 
+def _has_audio(path):
+    """파일에 오디오 스트림이 있는지 확인 (ffprobe 없이 ffmpeg stderr 파싱)."""
+    p = subprocess.run([FFMPEG, "-i", path], capture_output=True, creationflags=_NOWIN)
+    return "Audio:" in (p.stderr or b"").decode("utf-8", "replace")
+
+
 def fnt(sz, b=False):
     return ImageFont.truetype(FONT_B if b else FONT_R, int(sz))
 
@@ -391,6 +397,11 @@ def render_video(project, workdir, progress=None):
     if mode == "none":
         _run([FFMPEG, "-y", "-i", silent, "-c", "copy", out])
     elif mode == "file" and bfile and os.path.exists(bfile):
+        if not _has_audio(bfile):
+            raise RuntimeError(
+                "선택한 음악 파일에 소리(오디오)가 없습니다.\n"
+                "mp3·m4a·wav 같은 음원 파일을 선택해 주세요.\n"
+                "(소리 없는 영상·이미지 파일은 배경음악으로 쓸 수 없어요.)")
         log("내 음악 합치는 중…")
         _run([FFMPEG, "-y", "-i", silent, "-stream_loop", "-1", "-i", bfile,
               "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
