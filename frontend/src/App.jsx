@@ -177,6 +177,7 @@ function Preview({ scenes, images, settings, makeVideo, rendering, showMake = tr
         <input type="checkbox" checked={withMusic} disabled={!bgmUrl} onChange={e => setWithMusic(e.target.checked)} />
         배경음악 같이 듣기
       </label>
+      {watermark && onInquiry && <button className="wm-inquiry" onClick={onInquiry}>워터마크 제거(AI사용포함) 및 사용문의</button>}
       {showMake && <button className="btn primary big" disabled={rendering} onClick={makeVideo}>{rendering ? '만드는 중…' : '영상 만들기'}</button>}
     </div>
   )
@@ -229,8 +230,10 @@ function CutRow({ idx, cut, onChange, onMove, onDel, hasKey, busy, onAiResult, f
         <div className="prompt-top"><span className="lbl">프롬프트</span><button className="qmark" onClick={onHelp} title="작성법">?</button></div>
         <textarea className="prompt-ta" rows={3} value={cut.prompt} onChange={e => up({ prompt: e.target.value })} placeholder={'AI 프롬프트를 작성하세요\n(이미지가 없을경우 AI생성)\n* 추천을 클릭하면 자막에 맞는 이미지를 생성합니다.'} />
         <div className="prompt-actions">
-          <button className="btn info-o sm" disabled={watermark} onClick={suggest}>추천</button>
-          <button className="btn warn sm" disabled={watermark} onClick={genAi}>AI이미지 생성</button>
+          <span className="lock-wrap" title={watermark ? '워터마크 해제하면 쓸 수 있어요' : undefined}>
+            <button className="btn info-o sm" disabled={watermark} onClick={suggest}>추천</button></span>
+          <span className="lock-wrap" title={watermark ? '워터마크 해제하면 쓸 수 있어요' : undefined}>
+            <button className="btn warn sm" disabled={watermark} onClick={genAi}>AI이미지 생성</button></span>
           {watermark && onInquiry && <button className="wm-inquiry" onClick={onInquiry}>워터마크 제거(AI사용포함) 및 사용문의</button>}
         </div>
       </div>
