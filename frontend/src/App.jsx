@@ -931,7 +931,7 @@ export default function App() {
             <div className="prop-body">
               {propTab === 'scene'
                 ? (project.cuts[sel]
-                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} onHelp={() => setPromptHelp(true)} />
+                  ? <CutRow idx={sel} cut={project.cuts[sel]} onChange={nc => setCut(sel, nc)} onMove={d => moveCut(sel, d)} onDel={() => delCut(sel)} hasKey={user.has_key} busy={setBusyMsg} onAiResult={onAiResult} fontMode={s.font_mode} onCutFont={openFont} onImage={setLightbox} onHelp={() => setPromptHelp(true)} watermark={!!user.watermark} onInquiry={() => setContactOpen(true)} />
                   : <p className="muted">장면을 선택하세요</p>)
                 : <div className="gset">{basicSettings}{screenSettings}</div>}
             </div>
